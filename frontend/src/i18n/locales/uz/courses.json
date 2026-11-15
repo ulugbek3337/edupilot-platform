@@ -1,0 +1,9 @@
+{
+  "title": "Kurslar",
+  "add": "Kurs qo‘shish",
+  "name": "Kurs nomi",
+  "description": "Tavsif",
+  "teacher": "O‘qituvchi",
+  "duration": "Davomiyligi",
+  "empty": "Kurslar topilmadi."
+}

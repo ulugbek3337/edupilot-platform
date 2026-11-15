@@ -1,0 +1,10 @@
+{
+  "title": "O‘quvchilar",
+  "add": "O‘quvchi qo‘shish",
+  "name": "Ism-familiya",
+  "group": "Guruh",
+  "email": "Elektron pochta",
+  "attendance": "Davomat",
+  "grades": "Baholar",
+  "empty": "O‘quvchilar topilmadi."
+}

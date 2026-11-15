@@ -1,0 +1,9 @@
+{
+  "title": "To‘lovlar",
+  "amount": "Summa",
+  "dueDate": "To‘lov muddati",
+  "status": "Holati",
+  "paid": "To‘langan",
+  "pending": "Kutilmoqda",
+  "empty": "To‘lovlar topilmadi."
+}

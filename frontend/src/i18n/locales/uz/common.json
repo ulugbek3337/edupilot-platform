@@ -1,0 +1,47 @@
+{
+  "appName": "EduPilot",
+  "navigation": {
+    "home": "Bosh sahifa",
+    "mainMenu": "Asosiy menyu",
+    "dashboard": "Boshqaruv paneli",
+    "students": "O‘quvchilar",
+    "teachers": "O‘qituvchilar",
+    "courses": "Kurslar",
+    "groups": "Guruhlar",
+    "payments": "To‘lovlar",
+    "parents": "Ota-onalar",
+    "notifications": "Bildirishnomalar"
+  },
+  "language": {
+    "label": "Til",
+    "uz": "O‘zbekcha",
+    "ru": "Русский",
+    "saveError": "Til sozlamasini saqlab bo‘lmadi. Qayta urinib ko‘ring."
+  },
+  "roles": {
+    "SUPER_ADMIN": "Super administrator",
+    "CENTER_ADMIN": "Markaz administratori",
+    "TEACHER": "O‘qituvchi",
+    "STUDENT": "O‘quvchi",
+    "PARENT": "Ota-ona"
+  },
+  "actions": {
+    "save": "Saqlash",
+    "cancel": "Bekor qilish",
+    "edit": "Tahrirlash",
+    "delete": "O‘chirish",
+    "search": "Qidirish",
+    "filter": "Filtrlash",
+    "viewAll": "Barchasini ko‘rish"
+  },
+  "status": {
+    "loading": "Yuklanmoqda…",
+    "error": "Xatolik yuz berdi.",
+    "empty": "Hozircha ma’lumot yo‘q."
+  },
+  "validation": {
+    "required": "Bu maydon to‘ldirilishi shart.",
+    "invalidEmail": "To‘g‘ri elektron pochta manzilini kiriting.",
+    "passwordLength": "Parol kamida 8 ta belgidan iborat bo‘lishi kerak."
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "appName": "EduPilot",
+  "navigation": {
+    "home": "Главная",
+    "mainMenu": "Главное меню",
+    "dashboard": "Панель управления",
+    "students": "Ученики",
+    "teachers": "Преподаватели",
+    "courses": "Курсы",
+    "groups": "Группы",
+    "payments": "Платежи",
+    "parents": "Родители",
+    "notifications": "Уведомления"
+  },
+  "language": {
+    "label": "Язык",
+    "uz": "O‘zbekcha",
+    "ru": "Русский",
+    "saveError": "Не удалось сохранить язык. Попробуйте ещё раз."
+  },
+  "roles": {
+    "SUPER_ADMIN": "Суперадминистратор",
+    "CENTER_ADMIN": "Администратор центра",
+    "TEACHER": "Преподаватель",
+    "STUDENT": "Ученик",
+    "PARENT": "Родитель"
+  },
+  "actions": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "edit": "Изменить",
+    "delete": "Удалить",
+    "search": "Поиск",
+    "filter": "Фильтр",
+    "viewAll": "Показать все"
+  },
+  "status": {
+    "loading": "Загрузка…",
+    "error": "Произошла ошибка.",
+    "empty": "Пока нет данных."
+  },
+  "validation": {
+    "required": "Это поле обязательно.",
+    "invalidEmail": "Введите корректный адрес электронной почты.",
+    "passwordLength": "Пароль должен содержать не менее 8 символов."
+  }
+}

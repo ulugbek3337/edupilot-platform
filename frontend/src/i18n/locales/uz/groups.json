@@ -1,0 +1,9 @@
+{
+  "title": "Guruhlar",
+  "add": "Guruh qo‘shish",
+  "name": "Guruh nomi",
+  "course": "Kurs",
+  "teacher": "O‘qituvchi",
+  "schedule": "Jadval",
+  "empty": "Guruhlar topilmadi."
+}

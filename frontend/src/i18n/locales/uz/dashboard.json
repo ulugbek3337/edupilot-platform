@@ -1,0 +1,18 @@
+{
+  "title": "Markaz boshqaruv paneli",
+  "welcome": "EduPilot markaz ish maydoniga xush kelibsiz.",
+  "summary": {
+    "centers": "Markazlar",
+    "teachers": "O‘qituvchilar",
+    "students": "O‘quvchilar",
+    "attendance": "Davomat"
+  },
+  "description": "Ko‘p markazli LMS uchun boshlang‘ich platforma",
+  "foundation": "Ushbu boshlang‘ich loyiha markazga bog‘langan yo‘nalishlar, a’zolik tekshiruvlari va JWT autentifikatsiyasini o‘z ichiga oladi. Kurslar, davomat va to‘lov modullarini qo‘shish uchun kengaytirish mumkin.",
+  "tasks": {
+    "teachers": "O‘qituvchilarni boshqarish",
+    "attendance": "Davomatni kuzatish",
+    "grades": "Baholarni ko‘rib chiqish",
+    "payments": "To‘lovlarni kuzatish"
+  }
+}
