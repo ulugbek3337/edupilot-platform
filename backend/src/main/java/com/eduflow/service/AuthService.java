@@ -65,7 +65,8 @@ public class AuthService {
         return buildAuthResponse(user, CurrentCenterContext.get());
     }
 
-    @Transactional
+    // Keep the revocation update committed when an inactive account is rejected.
+    @Transactional(noRollbackFor = EduFlowException.class)
     public AuthResponse refreshToken(RefreshRequest request) {
         String token = request.refreshToken();
         if (!jwtService.isRefreshTokenValid(token)) {
