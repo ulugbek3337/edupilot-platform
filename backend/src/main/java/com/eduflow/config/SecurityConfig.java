@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -50,8 +51,12 @@ public class SecurityConfig {
                         .authenticationEntryPoint(localizedSecurityErrorHandler)
                         .accessDeniedHandler(localizedSecurityErrorHandler))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/refresh"
+                        ).permitAll()
                         .requestMatchers(
-                                "/api/v1/auth/**",
                                 "/actuator/health",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
