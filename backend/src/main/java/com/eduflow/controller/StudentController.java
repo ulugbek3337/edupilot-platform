@@ -8,6 +8,7 @@ import com.eduflow.security.AuthenticatedUser;
 import com.eduflow.security.CenterMembershipService;
 import com.eduflow.security.CurrentCenterContext;
 import com.eduflow.service.StudentService;
+import com.eduflow.service.AuditLogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,7 @@ public class StudentController {
 
     private final StudentService studentService;
     private final CenterMembershipService membershipService;
+    private final AuditLogService auditLogService;
 
     @GetMapping
     public ResponseEntity<List<StudentResponse>> list(
@@ -40,6 +42,7 @@ public class StudentController {
             @Valid @RequestBody StudentRequest request) {
         Long centerId = requireCenter(principal.id());
         Student student = studentService.create(centerId, request);
+        auditLogService.record(centerId, principal.id(), "STUDENT_CREATED", "Student", student.getId(), student.getStudentNumber());
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(student));
     }
 
@@ -57,7 +60,9 @@ public class StudentController {
             @PathVariable Long studentId,
             @Valid @RequestBody StudentRequest request) {
         Long centerId = requireCenter(principal.id());
-        return ResponseEntity.ok(toResponse(studentService.update(centerId, studentId, request)));
+        Student student = studentService.update(centerId, studentId, request);
+        auditLogService.record(centerId, principal.id(), "STUDENT_UPDATED", "Student", student.getId(), student.getStudentNumber());
+        return ResponseEntity.ok(toResponse(student));
     }
 
     @DeleteMapping("/{studentId}")
@@ -67,6 +72,7 @@ public class StudentController {
         Long centerId = requireCenter(principal.id());
         membershipService.assertRoleForUserId(principal.id(), centerId, Role.CENTER_ADMIN);
         studentService.deactivate(centerId, studentId);
+        auditLogService.record(centerId, principal.id(), "STUDENT_DEACTIVATED", "Student", studentId, null);
         return ResponseEntity.noContent().build();
     }
 

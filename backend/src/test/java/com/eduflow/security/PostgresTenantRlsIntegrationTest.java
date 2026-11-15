@@ -33,6 +33,7 @@ class PostgresTenantRlsIntegrationTest {
   admin.execute("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO edupilot_app");
   admin.update("INSERT INTO centers(id,name,slug,status) VALUES (101,'Center One','center-one','ACTIVE'),(202,'Center Two','center-two','ACTIVE')");
   admin.update("INSERT INTO students(center_id,student_number,first_name,last_name) VALUES (101,'S-101','One','Student'),(202,'S-202','Two','Student')");
+  admin.update("INSERT INTO audit_logs(center_id,action,entity_type,details) VALUES (101,'LOGIN','User','center one'),(202,'LOGIN','User','center two')");
   DataSource appDs=dataSource("edupilot_app","app-password");
   app=new JdbcTemplate(appDs);
   appTransaction=new TransactionTemplate(new DataSourceTransactionManager(appDs));
@@ -56,6 +57,13 @@ class PostgresTenantRlsIntegrationTest {
    return app.queryForObject("SELECT COUNT(*) FROM students WHERE center_id=202",Integer.class);
   });
   assertEquals(0,foreignVisible);
+ }
+ @Test void rlsAlsoScopesParentAndAuditData() {
+  Integer visible=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.queryForObject("SELECT COUNT(*) FROM audit_logs",Integer.class);
+  });
+  assertEquals(1,visible);
  }
  @Test void tenantCannotInsertRowsForAnotherCenter() {
   assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
