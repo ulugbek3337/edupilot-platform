@@ -40,10 +40,11 @@ public class StudentService {
     @Transactional
     public Student create(Long centerId, StudentRequest request) {
         Center center = requireActiveCenter(centerId);
-        if (studentRepository.existsByCenter_IdAndStudentNumber(centerId, request.studentNumber())) {
+        String studentNumber = request.studentNumber().trim();
+        if (studentRepository.existsByCenter_IdAndStudentNumber(centerId, studentNumber)) {
             throw new EduFlowException(HttpStatus.CONFLICT, "student.number.exists");
         }
-        Student student = new Student(center, request.studentNumber().trim(),
+        Student student = new Student(center, studentNumber,
                 request.firstName().trim(), request.lastName().trim(),
                 normalize(request.email()), normalize(request.phone()), request.dateOfBirth());
         return studentRepository.save(student);
@@ -52,11 +53,12 @@ public class StudentService {
     @Transactional
     public Student update(Long centerId, Long studentId, StudentRequest request) {
         Student student = get(centerId, studentId);
+        String studentNumber = request.studentNumber().trim();
         if (studentRepository.existsByCenter_IdAndStudentNumberAndIdNot(
-                centerId, request.studentNumber(), studentId)) {
+                centerId, studentNumber, studentId)) {
             throw new EduFlowException(HttpStatus.CONFLICT, "student.number.exists");
         }
-        student.setStudentNumber(request.studentNumber().trim());
+        student.setStudentNumber(studentNumber);
         student.setFirstName(request.firstName().trim());
         student.setLastName(request.lastName().trim());
         student.setEmail(normalize(request.email()));
