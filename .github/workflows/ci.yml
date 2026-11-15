@@ -78,7 +78,9 @@ jobs:
       - name: Validate Compose configuration
         env:
           DB_NAME: edupilot_ci
-          DB_USERNAME: edupilot_ci
+          DB_USERNAME: edupilot_app
           DB_PASSWORD: ci-only-database-password
+          POSTGRES_ADMIN_USER: edupilot_admin
+          POSTGRES_ADMIN_PASSWORD: ci-only-admin-password
           REDIS_PASSWORD: ci-only-redis-password
         run: docker compose config --quiet
