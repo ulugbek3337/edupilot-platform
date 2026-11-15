@@ -8,6 +8,7 @@ import com.eduflow.entity.StudentStatus;
 import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.CenterRepository;
 import com.eduflow.repository.StudentRepository;
+import com.eduflow.security.TenantRlsContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,12 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final CenterRepository centerRepository;
+    private final TenantRlsContext tenantRlsContext;
 
     @Transactional(readOnly = true)
     public List<Student> list(Long centerId) {
         requireActiveCenter(centerId);
+        tenantRlsContext.apply(centerId);
         return studentRepository.findAllByCenter_IdAndStatusOrderByLastNameAscFirstNameAsc(
                 centerId, StudentStatus.ACTIVE);
     }
@@ -32,6 +35,7 @@ public class StudentService {
     @Transactional(readOnly = true)
     public Student get(Long centerId, Long studentId) {
         requireActiveCenter(centerId);
+        tenantRlsContext.apply(centerId);
         return studentRepository.findByIdAndCenter_Id(studentId, centerId)
                 .filter(student -> student.getStatus() == StudentStatus.ACTIVE)
                 .orElseThrow(() -> new EduFlowException(HttpStatus.NOT_FOUND, "student.not-found"));
@@ -40,6 +44,7 @@ public class StudentService {
     @Transactional
     public Student create(Long centerId, StudentRequest request) {
         Center center = requireActiveCenter(centerId);
+        tenantRlsContext.apply(centerId);
         String studentNumber = request.studentNumber().trim();
         if (studentRepository.existsByCenter_IdAndStudentNumber(centerId, studentNumber)) {
             throw new EduFlowException(HttpStatus.CONFLICT, "student.number.exists");

@@ -5,6 +5,12 @@ spring:
     basename: i18n/messages
     encoding: UTF-8
     fallback-to-system-locale: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2s
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/edupilot}
     username: ${DB_USERNAME:eduflow}
@@ -44,6 +50,12 @@ jwt:
 app:
   tenant:
     header-name: ${TENANT_HEADER_NAME:X-Center-Id}
+  rate-limit:
+    auth:
+      login-max-attempts: ${AUTH_LOGIN_RATE_LIMIT:10}
+      register-max-attempts: ${AUTH_REGISTER_RATE_LIMIT:5}
+      refresh-max-attempts: ${AUTH_REFRESH_RATE_LIMIT:30}
+      window-seconds: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:60}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
 

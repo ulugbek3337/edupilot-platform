@@ -1,61 +1,40 @@
 # EduPilot
 
-EduPilot is a multi-tenant LMS SaaS platform built as a modular monolith. The project is structured for deployment, with JWT security and extension points for future modules.
+EduPilot is a multi-tenant LMS platform built as a modular monolith.
 
 ## Stack
-
-- Backend: Java 21, Spring Boot 3.x, Spring Security, Spring Data JPA, PostgreSQL, Flyway
+- Backend: Java 21, Spring Boot 3.5, Spring Security, Spring Data JPA, PostgreSQL, Flyway
 - Frontend: React, TypeScript, Vite
-- Infra: Docker Compose, PostgreSQL, Redis, Nginx
+- Infrastructure: Docker Compose, PostgreSQL 16, Redis 7
 
 ## Structure
-
 - `backend/` – Spring Boot API and domain logic
-- `frontend/` – Vite React app
-- `docker-compose.yml` – Local infrastructure for PostgreSQL and Redis
+- `frontend/` – React application
+- `docker-compose.yml` – Local PostgreSQL and Redis
+- `scripts/` – PostgreSQL backup and restore helpers
+- `load-tests/` – k6 staging workload
+- `docs/operations.md` – operational and production checklist
 
 ## Quick start
+1. Copy `.env.example` to `.env` and replace every placeholder with unique secrets.
+2. Start fresh local infrastructure: `docker compose up -d`.
+3. On a fresh PostgreSQL volume, the init script creates a restricted `DB_USERNAME` role. The bootstrap `POSTGRES_ADMIN_USER` is not used by the application.
+4. Run the backend with the same `DB_USERNAME`, `DB_PASSWORD`, `REDIS_PASSWORD`, and `JWT_SECRET` values.
+5. Run the frontend: `cd frontend && npm ci && npm run dev`.
 
-1. Configure the required environment variables before starting the backend:
-   - `DB_PASSWORD` – PostgreSQL password
-   - `JWT_SECRET` – Base64-encoded secret with at least 32 bytes for HS256
-   - `APP_CORS_ALLOWED_ORIGINS` – Comma-separated exact frontend origins; defaults to `http://localhost:5173` for local development
-2. Start infrastructure:
-   ```bash
-   docker compose up -d
-   ```
-3. Run backend:
-   ```bash
-   cd backend
-   mvn spring-boot:run
-   ```
-4. Run frontend:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+Existing PostgreSQL volumes do not rerun Docker initialization scripts. Create the restricted application role manually as described in [operations documentation](docs/operations.md); do not delete volumes to re-run initialization unless the data is disposable and backed up.
 
-For production, set `APP_CORS_ALLOWED_ORIGINS` to the exact HTTPS origin(s) serving the frontend. Do not use `*` when credentials are enabled. Keep secrets outside source control.
+## Implemented platform foundations
+- JWT authentication, refresh-token rotation, and center membership authorization
+- Multi-tenant Student, Teacher, Course, Group, Lesson, Attendance, and Grade APIs
+- PostgreSQL RLS for tenant business tables (V6 migration)
+- Redis-backed rate limiting for authentication endpoints
+- Uzbek and Russian interface translations
+- Docker Compose infrastructure with separate PostgreSQL bootstrap and application roles
+- Backup/restore scripts and k6 staging load test
 
-## Core requirements implemented
+## Deferred
+Billing and subscriptions are intentionally paused and will be designed in a later phase. Do not enable payment-related flows until billing requirements and provider integration are approved.
 
-- Multi-tenant center scoping with `CurrentCenterContext`
-- JWT auth and refresh token posture
-- Center membership and authorization checks
-- Role-based access control with center-aware permissions
-- Domain modules for centers, users, memberships, and auth
-- Flyway migration strategy and PostgreSQL configuration
-- Uzbek and Russian UI translations with persisted user language preference
-- Localized API validation and application errors using `Accept-Language`
-- Structured content translations keyed by entity, field, and language
-
-## Languages and translated content
-
-The interface supports Uzbek (`uz`, locale `uz-UZ`) and Russian (`ru`, locale `ru-RU`). Visitors' selection is stored in browser local storage. Once a user session is established, `applyAuthenticatedLanguage` applies the preference returned by the API; authenticated language changes are saved through `PATCH /api/v1/auth/me/language`. The account preference is independent of the selected center.
-
-Backend messages are in `backend/src/main/resources/i18n/messages_uz.properties` and `messages_ru.properties`. Frontend strings are split by language and feature namespace under `frontend/src/i18n/locales/`. Translated educational fields belong in `content_translations`, which stores one translated field per owner, field, and language rather than cloning business records. The owning module should validate the owner reference when it writes or reads a row.
-
-## Notes
-
-This starter is organized so the project can expand into courses, attendance, grades, payments, and notifications.
+## Operational guidance
+Read [docs/operations.md](docs/operations.md) before staging or production deployment. Production readiness still requires environment-specific TLS, secrets management, backup encryption and restore drills, monitoring/alerting, privacy review, and a measured load test.
