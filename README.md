@@ -1,12 +1,12 @@
 # EduPilot
 
-EduPilot is a multi-tenant LMS SaaS platform built as a modular monolith. The project is structured for real-world deployment, with JWT security and extension points for future modules.
+EduPilot is a multi-tenant LMS SaaS platform built as a modular monolith. The project is structured for deployment, with JWT security and extension points for future modules.
 
 ## Stack
 
-- Backend: Java 25 (LTS), Spring Boot 3.x, Spring Security, Spring Data JPA, PostgreSQL, Flyway
-- Frontend: React, TypeScript, Vite, Tailwind CSS
-- Infra: Docker Compose, Redis, Nginx
+- Backend: Java 21, Spring Boot 3.x, Spring Security, Spring Data JPA, PostgreSQL, Flyway
+- Frontend: React, TypeScript, Vite
+- Infra: Docker Compose, PostgreSQL, Redis, Nginx
 
 ## Structure
 
@@ -16,23 +16,27 @@ EduPilot is a multi-tenant LMS SaaS platform built as a modular monolith. The pr
 
 ## Quick start
 
-1. Start infrastructure:
+1. Configure the required environment variables before starting the backend:
+   - `DB_PASSWORD` – PostgreSQL password
+   - `JWT_SECRET` – Base64-encoded secret with at least 32 bytes for HS256
+   - `APP_CORS_ALLOWED_ORIGINS` – Comma-separated exact frontend origins; defaults to `http://localhost:5173` for local development
+2. Start infrastructure:
    ```bash
    docker compose up -d
    ```
-
-2. Run backend:
+3. Run backend:
    ```bash
    cd backend
    mvn spring-boot:run
    ```
-
-3. Run frontend:
+4. Run frontend:
    ```bash
    cd frontend
    npm install
    npm run dev
    ```
+
+For production, set `APP_CORS_ALLOWED_ORIGINS` to the exact HTTPS origin(s) serving the frontend. Do not use `*` when credentials are enabled. Keep secrets outside source control.
 
 ## Core requirements implemented
 
@@ -48,18 +52,10 @@ EduPilot is a multi-tenant LMS SaaS platform built as a modular monolith. The pr
 
 ## Languages and translated content
 
-The interface supports Uzbek (`uz`, locale `uz-UZ`) and Russian (`ru`, locale `ru-RU`).
-Visitors' selection is stored in browser local storage. Once a user session is established,
-`applyAuthenticatedLanguage` applies the preference returned by the API; authenticated language changes
-are saved through `PATCH /api/v1/auth/me/language`. The account preference is independent of
-the selected center.
+The interface supports Uzbek (`uz`, locale `uz-UZ`) and Russian (`ru`, locale `ru-RU`). Visitors' selection is stored in browser local storage. Once a user session is established, `applyAuthenticatedLanguage` applies the preference returned by the API; authenticated language changes are saved through `PATCH /api/v1/auth/me/language`. The account preference is independent of the selected center.
 
-Backend messages are in `backend/src/main/resources/i18n/messages_uz.properties` and
-`messages_ru.properties`. Frontend strings are split by language and feature namespace under
-`frontend/src/i18n/locales/`. Translated educational fields belong in `content_translations`,
-which stores one translated field per owner, field, and language rather than cloning business
-records. The owning module should validate the owner reference when it writes or reads a row.
+Backend messages are in `backend/src/main/resources/i18n/messages_uz.properties` and `messages_ru.properties`. Frontend strings are split by language and feature namespace under `frontend/src/i18n/locales/`. Translated educational fields belong in `content_translations`, which stores one translated field per owner, field, and language rather than cloning business records. The owning module should validate the owner reference when it writes or reads a row.
 
 ## Notes
 
-This starter is production-oriented and intentionally organized so the project can expand into courses, attendance, grades, payments, and notifications without architecture churn.
+This starter is organized so the project can expand into courses, attendance, grades, payments, and notifications.
