@@ -9,6 +9,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Ensures tenant context is cleared at the servlet boundary.
+ * The tenant id itself is resolved only by JwtAuthenticationFilter after
+ * validating the authenticated user's active membership.
+ */
 @Component
 public class TenantContextFilter extends OncePerRequestFilter {
 
@@ -16,10 +21,6 @@ public class TenantContextFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            String centerIdHeader = request.getHeader("X-Center-Id");
-            if (centerIdHeader != null && !centerIdHeader.isBlank()) {
-                CurrentCenterContext.set(Long.parseLong(centerIdHeader));
-            }
             filterChain.doFilter(request, response);
         } finally {
             CurrentCenterContext.clear();
