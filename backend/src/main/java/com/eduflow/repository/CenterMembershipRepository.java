@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CenterMembershipRepository extends JpaRepository<CenterMembership, Long> {
+    @EntityGraph(attributePaths = "center")
     Optional<CenterMembership> findByCenterIdAndUserId(Long centerId, Long userId);
     boolean existsByCenterIdAndUserId(Long centerId, Long userId);
     boolean existsByCenterIdAndUserIdAndRole(Long centerId, Long userId, Role role);
