@@ -43,7 +43,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             && SecurityContextHolder.getContext().getAuthentication() == null) {
                         UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
 
-                        if (jwtService.isTokenValid(token, userDetails)) {
+                        if (jwtService.isTokenValid(token, userDetails)
+                                && userDetails.isEnabled()
+                                && userDetails.isAccountNonLocked()) {
                             Long centerId = resolveCenterId(request, token);
 
                             // A client-supplied tenant header is never trusted by itself.
