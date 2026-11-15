@@ -1,5 +1,6 @@
 package com.eduflow.security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -20,39 +22,74 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final CenterMembershipService centerMembershipService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        final String authHeader = request.getHeader("Authorization");
+        CurrentCenterContext.clear();
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        try {
+            final String authHeader = request.getHeader("Authorization");
 
-        final String token = authHeader.substring(7);
-        final String username = jwtService.extractUsername(token);
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                final String token = authHeader.substring(7);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
-            if (jwtService.isTokenValid(token, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                try {
+                    final String username = jwtService.extractUsername(token);
 
-                Long centerId = jwtService.extractCenterId(token);
-                if (centerId != null) {
-                    CurrentCenterContext.set(centerId);
+                    if (username != null
+                            && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+
+                        if (jwtService.isTokenValid(token, userDetails)
+                                && userDetails.isEnabled()
+                                && userDetails.isAccountNonLocked()) {
+                            Long centerId = resolveCenterId(request, token);
+
+                            // A client-supplied tenant header is never trusted by itself.
+                            // It must identify an active center membership for this user.
+                            if (centerId != null
+                                    && (!(userDetails instanceof AuthenticatedUser authenticatedUser)
+                                    || !centerMembershipService.isActiveMember(authenticatedUser.id(), centerId))) {
+                                SecurityContextHolder.clearContext();
+                                CurrentCenterContext.clear();
+                            } else {
+                                UsernamePasswordAuthenticationToken authToken =
+                                        new UsernamePasswordAuthenticationToken(
+                                                userDetails,
+                                                null,
+                                                userDetails.getAuthorities()
+                                        );
+                                authToken.setDetails(
+                                        new WebAuthenticationDetailsSource().buildDetails(request)
+                                );
+                                SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                                if (centerId != null) {
+                                    CurrentCenterContext.set(centerId);
+                                }
+                            }
+                        }
+                    }
+                } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {
+                    SecurityContextHolder.clearContext();
+                    CurrentCenterContext.clear();
                 }
             }
-        }
 
-        filterChain.doFilter(request, response);
+            filterChain.doFilter(request, response);
+        } finally {
+            CurrentCenterContext.clear();
+        }
+    }
+
+    private Long resolveCenterId(HttpServletRequest request, String token) {
+        String requestedCenterId = request.getHeader("X-Center-Id");
+        if (requestedCenterId != null && !requestedCenterId.isBlank()) {
+            return Long.parseLong(requestedCenterId);
+        }
+        return jwtService.extractCenterId(token);
     }
 }

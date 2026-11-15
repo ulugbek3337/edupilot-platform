@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
         return error(
                 exception.getStatus(),
                 exception.getMessageCode(),
-                messageSource.getMessage(exception.getMessageCode(), null, LocaleContextHolder.getLocale()),
+                messageSource.getMessage(exception.getMessageCode(), null, exception.getMessageCode(), LocaleContextHolder.getLocale()),
                 Map.of()
         );
     }
@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
     }
 
     private String message(String code) {
-        return messageSource.getMessage(code, null, LocaleContextHolder.getLocale());
+        return messageSource.getMessage(code, null, code, LocaleContextHolder.getLocale());
     }
 
     private ResponseEntity<ApiErrorResponse> error(

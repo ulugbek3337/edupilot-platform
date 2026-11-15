@@ -4,7 +4,6 @@ import com.eduflow.dto.AuthDtos.CenterSummary;
 import com.eduflow.entity.Center;
 import com.eduflow.entity.User;
 import com.eduflow.security.AuthenticatedUser;
-import com.eduflow.security.CenterMembershipService;
 import com.eduflow.service.AuthService;
 import com.eduflow.service.CenterService;
 import lombok.RequiredArgsConstructor;
@@ -21,15 +20,12 @@ import java.util.List;
 public class CenterController {
 
     private final CenterService centerService;
-    private final CenterMembershipService centerMembershipService;
     private final AuthService authService;
 
     @GetMapping("/centers")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<CenterSummary>> listCenters(@AuthenticationPrincipal AuthenticatedUser principal) {
-        User user = authService.getCurrentUser(principal.getUsername());
-        List<CenterSummary> centers = centerService.findAll().stream()
-                .filter(center -> centerMembershipService.isMember(user, center.getId()))
+        List<CenterSummary> centers = centerService.findAllForUser(principal.id()).stream()
                 .map(center -> new CenterSummary(center.getId(), center.getName(), center.getSlug(), center.getStatus().name()))
                 .toList();
         return ResponseEntity.ok(centers);

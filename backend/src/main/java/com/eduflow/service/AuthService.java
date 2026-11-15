@@ -8,6 +8,7 @@ import com.eduflow.dto.AuthDtos.RegisterRequest;
 import com.eduflow.entity.LanguagePreference;
 import com.eduflow.entity.RefreshToken;
 import com.eduflow.entity.User;
+import com.eduflow.entity.UserStatus;
 import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.RefreshTokenRepository;
 import com.eduflow.repository.UserRepository;
@@ -64,21 +65,41 @@ public class AuthService {
         return buildAuthResponse(user, CurrentCenterContext.get());
     }
 
-    @Transactional
+    // Keep the revocation update committed when an inactive account is rejected.
+    @Transactional(noRollbackFor = EduFlowException.class)
     public AuthResponse refreshToken(RefreshRequest request) {
         String token = request.refreshToken();
         if (!jwtService.isRefreshTokenValid(token)) {
             throw new EduFlowException(401, "auth.refresh.invalid");
         }
 
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
+        // Lock the persisted token row so two simultaneous refresh requests
+        // cannot both rotate the same refresh token successfully.
+        RefreshToken refreshToken = refreshTokenRepository.findByTokenForUpdate(token)
                 .orElseThrow(() -> new EduFlowException(401, "auth.refresh.invalid"));
 
-        if (refreshToken.isRevoked()) {
-            throw new EduFlowException(401, "auth.refresh.revoked");
+        Instant now = Instant.now();
+        if (refreshToken.isRevoked()
+                || refreshToken.getExpiresAt() == null
+                || !refreshToken.getExpiresAt().isAfter(now)) {
+            throw new EduFlowException(401, "auth.refresh.invalid");
         }
 
         User user = refreshToken.getUser();
+        Long tokenUserId = jwtService.extractUserId(token);
+        String tokenSubject = jwtService.extractUsername(token);
+
+        if (user == null
+                || user.getId() == null
+                || !user.getId().equals(tokenUserId)
+                || !user.getEmail().equals(tokenSubject)
+                || !user.isEnabled()
+                || user.getStatus() != UserStatus.ACTIVE) {
+            refreshToken.setRevoked(true);
+            refreshTokenRepository.save(refreshToken);
+            throw new EduFlowException(401, "auth.refresh.invalid");
+        }
+
         refreshToken.setRevoked(true);
         refreshTokenRepository.save(refreshToken);
 
