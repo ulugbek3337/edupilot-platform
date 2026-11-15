@@ -31,11 +31,11 @@ public class CenterMembershipService {
 
     @Transactional(readOnly = true)
     public void assertAccess(User user, Long centerId) {
-        assertAccess(user == null ? null : user.getId(), centerId);
+        assertAccessForUserId(user == null ? null : user.getId(), centerId);
     }
 
     @Transactional(readOnly = true)
-    public void assertAccess(Long userId, Long centerId) {
+    public void assertAccessForUserId(Long userId, Long centerId) {
         if (findActiveMembership(userId, centerId).isEmpty()) {
             throw new AccessDeniedException("User is not an active member of this center.");
         }
@@ -43,11 +43,11 @@ public class CenterMembershipService {
 
     @Transactional(readOnly = true)
     public void assertRole(User user, Long centerId, Role... roles) {
-        assertRole(user == null ? null : user.getId(), centerId, roles);
+        assertRoleForUserId(user == null ? null : user.getId(), centerId, roles);
     }
 
     @Transactional(readOnly = true)
-    public void assertRole(Long userId, Long centerId, Role... roles) {
+    public void assertRoleForUserId(Long userId, Long centerId, Role... roles) {
         CenterMembership membership = findActiveMembership(userId, centerId)
                 .orElseThrow(() -> new AccessDeniedException("User is not an active member of this center."));
 
