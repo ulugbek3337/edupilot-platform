@@ -4,6 +4,7 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import AcademicWorkspace from './components/AcademicWorkspace';
 import { api, centerKey, tokenKey, type AuthResult, type Center } from './api';
 function Login({onLogin}:{onLogin:(result:AuthResult)=>void}){
+ const {t}=useTranslation(['common','auth']);
  const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [error,setError]=useState('');const [busy,setBusy]=useState(false);
  async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');try{const result=await api<AuthResult>('/auth/login',{method:'POST',body:{email,password}});onLogin(result);}catch(err){setError(err instanceof Error?err.message:'Kirish amalga oshmadi');}finally{setBusy(false);}}
  return <main className="auth-shell"><form className="auth-card" onSubmit={submit}><p className="eyebrow">EduPilot LMS</p><h1>{t("title",{ns:"auth"})}</h1><label>{t("email",{ns:"auth"})}<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username"/></label><label>{t("password",{ns:"auth"})}<input type="password" required value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/></label>{error&&<p className="error-message" role="alert">{error}</p>}<button className="primary-button" disabled={busy}>{busy?'Tekshirilmoqda…':t('login',{ns:'auth'})}</button></form></main>;
