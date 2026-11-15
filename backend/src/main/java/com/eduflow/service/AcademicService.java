@@ -1,11 +1,11 @@
 package com.eduflow.service;
 import com.eduflow.dto.AcademicDtos.*; import com.eduflow.entity.*; import com.eduflow.exception.EduFlowException;
-import com.eduflow.repository.*; import lombok.RequiredArgsConstructor; import org.springframework.http.HttpStatus; import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
+import com.eduflow.repository.*; import com.eduflow.security.TenantRlsContext; import lombok.RequiredArgsConstructor; import org.springframework.http.HttpStatus; import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
 import java.util.*; import java.math.BigDecimal;
 @Service @RequiredArgsConstructor
 public class AcademicService {
- private final CenterRepository centers; private final TeacherRepository teachers; private final CourseRepository courses; private final StudyGroupRepository groups; private final LessonRepository lessons; private final StudentRepository students; private final AttendanceRepository attendance; private final GradeRepository grades;
- private Center center(Long id){if(id==null)throw fail(HttpStatus.BAD_REQUEST,"tenant.context.required"); Center c=centers.findById(id).orElseThrow(()->fail(HttpStatus.NOT_FOUND,"center.not-found")); if(c.getStatus()!=CenterStatus.ACTIVE)throw fail(HttpStatus.FORBIDDEN,"tenant.center.inactive"); return c;}
+ private final CenterRepository centers; private final TeacherRepository teachers; private final CourseRepository courses; private final StudyGroupRepository groups; private final LessonRepository lessons; private final StudentRepository students; private final AttendanceRepository attendance; private final GradeRepository grades; private final TenantRlsContext tenantRlsContext;
+ private Center center(Long id){if(id==null)throw fail(HttpStatus.BAD_REQUEST,"tenant.context.required"); Center c=centers.findById(id).orElseThrow(()->fail(HttpStatus.NOT_FOUND,"center.not-found")); if(c.getStatus()!=CenterStatus.ACTIVE)throw fail(HttpStatus.FORBIDDEN,"tenant.center.inactive"); tenantRlsContext.apply(id); return c;}
  private EduFlowException fail(HttpStatus s,String code){return new EduFlowException(s,code);}
  private String clean(String s){return s==null||s.isBlank()?null:s.trim();}
  @Transactional(readOnly=true) public List<Teacher> teachers(Long c){center(c);return teachers.findAllByCenter_IdAndStatusOrderByLastNameAscFirstNameAsc(c,"ACTIVE");}
