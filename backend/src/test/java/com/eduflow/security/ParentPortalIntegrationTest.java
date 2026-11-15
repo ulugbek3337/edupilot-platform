@@ -16,15 +16,15 @@ class ParentPortalIntegrationTest {
   StudyGroup group=groups.save(new StudyGroup(center,course,teacher,"P-G-01","5-A",null,null));
   Lesson lesson=lessons.save(new Lesson(center,group,"Kasrlar",null,java.time.LocalDateTime.of(2026,11,16,9,0),java.time.LocalDateTime.of(2026,11,16,10,0)));
   String adminToken=jwt.generateToken(admin,center.getId());String parentToken=jwt.generateToken(parent,center.getId());
-  mvc.perform(post("/api/v1/parents/links").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON).content("{\\"parentUserId\\":"+parent.getId()+",\\"studentId\\":"+student.getId()+"}"))
+  mvc.perform(post("/api/v1/parents/links").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"parentUserId\":"+parent.getId()+",\"studentId\":"+student.getId()+"}"))
    .andExpect(status().isCreated());
   mvc.perform(get("/api/v1/parents/children").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].firstName").value("Aziza"));
   mvc.perform(post("/api/v1/grades").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON)
-    .content("{\\"studentId\\":"+student.getId()+",\\"groupId\\":"+group.getId()+",\\"title\\":\\"Test\\",\\"score\\":9,\\"maxScore\\":10}"))
+    .content("{\"studentId\":"+student.getId()+",\"groupId\":"+group.getId()+",\"title\":\"Test\",\"score\":9,\"maxScore\":10}"))
    .andExpect(status().isCreated());
   mvc.perform(post("/api/v1/attendance").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON)
-    .content("{\\"lessonId\\":"+lesson.getId()+",\\"studentId\\":"+student.getId()+",\\"status\\":\\"PRESENT\\"}"))
+    .content("{\"lessonId\":"+lesson.getId()+",\"studentId\":"+student.getId()+",\"status\":\"PRESENT\"}"))
    .andExpect(status().isCreated());
   mvc.perform(get("/api/v1/parents/children/"+student.getId()+"/grades").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
