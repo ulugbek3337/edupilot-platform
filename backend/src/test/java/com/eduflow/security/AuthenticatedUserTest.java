@@ -4,7 +4,7 @@ import com.eduflow.entity.User;
 import com.eduflow.entity.UserStatus;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;\nimport org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 class AuthenticatedUserTest {
 
