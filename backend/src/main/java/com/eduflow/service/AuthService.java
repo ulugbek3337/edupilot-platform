@@ -9,7 +9,7 @@ import com.eduflow.entity.LanguagePreference;
 import com.eduflow.entity.RefreshToken;
 import com.eduflow.entity.User;
 import com.eduflow.entity.UserStatus;
-import com.edufilot.exception.EduFlowException;
+import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.RefreshTokenRepository;
 import com.eduflow.repository.UserRepository;
 import com.eduflow.security.CurrentCenterContext;
