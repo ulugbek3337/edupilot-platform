@@ -13,6 +13,7 @@ class AcademicTenantIntegrationTest {
   JsonNode teacher=post(token,center.getId(),"/api/v1/teachers","{\"teacherCode\":\"T-01\",\"firstName\":\"Dilshod\",\"lastName\":\"Karimov\"}");
   JsonNode course=post(token,center.getId(),"/api/v1/courses","{\"courseCode\":\"MATH\",\"name\":\"Matematika\"}");
   JsonNode group=post(token,center.getId(),"/api/v1/groups","{\"courseId\":"+course.get("id").asLong()+",\"teacherId\":"+teacher.get("id").asLong()+",\"groupCode\":\"G-01\",\"name\":\"7-A\"}");
+  post(token,center.getId(),"/api/v1/group-enrollments","{\"groupId\":"+group.get("id").asLong()+",\"studentId\":"+student.getId()+"}");
   JsonNode lesson=post(token,center.getId(),"/api/v1/lessons","{\"groupId\":"+group.get("id").asLong()+",\"title\":\"Algebra\",\"startsAt\":\"2026-11-16T09:00:00\",\"endsAt\":\"2026-11-16T10:00:00\"}");
   post(token,center.getId(),"/api/v1/attendance","{\"lessonId\":"+lesson.get("id").asLong()+",\"studentId\":"+student.getId()+",\"status\":\"PRESENT\"}");
   post(token,center.getId(),"/api/v1/grades","{\"studentId\":"+student.getId()+",\"groupId\":"+group.get("id").asLong()+",\"title\":\"Nazorat ishi\",\"score\":18,\"maxScore\":20}");

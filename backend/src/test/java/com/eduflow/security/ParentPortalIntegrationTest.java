@@ -33,7 +33,7 @@ class ParentPortalIntegrationTest {
   mvc.perform(get("/api/v1/notifications").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
   mvc.perform(get("/api/v1/audit-logs").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()))
-   .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3));
+   .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(4));
   mvc.perform(get("/api/v1/audit-logs").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
    .andExpect(status().isForbidden());
  }

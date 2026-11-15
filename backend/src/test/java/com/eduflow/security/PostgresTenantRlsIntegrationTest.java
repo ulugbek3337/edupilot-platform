@@ -34,6 +34,10 @@ class PostgresTenantRlsIntegrationTest {
   admin.update("INSERT INTO centers(id,name,slug,status) VALUES (101,'Center One','center-one','ACTIVE'),(202,'Center Two','center-two','ACTIVE')");
   admin.update("INSERT INTO students(center_id,student_number,first_name,last_name) VALUES (101,'S-101','One','Student'),(202,'S-202','Two','Student')");
   admin.update("INSERT INTO audit_logs(center_id,action,entity_type,details) VALUES (101,'LOGIN','User','center one'),(202,'LOGIN','User','center two')");
+  admin.update("INSERT INTO teachers(id,center_id,teacher_code,first_name,last_name) VALUES (301,101,'T-101','One','Teacher'),(302,202,'T-202','Two','Teacher')");
+  admin.update("INSERT INTO courses(id,center_id,course_code,name) VALUES (401,101,'C-101','One Course'),(402,202,'C-202','Two Course')");
+  admin.update("INSERT INTO study_groups(id,center_id,course_id,teacher_id,group_code,name) VALUES (501,101,401,301,'G-101','One Group'),(502,202,402,302,'G-202','Two Group')");
+  admin.update("INSERT INTO group_enrollments(center_id,group_id,student_id) VALUES (101,501,1),(202,502,2)");
   DataSource appDs=dataSource("edupilot_app","app-password");
   app=new JdbcTemplate(appDs);
   appTransaction=new TransactionTemplate(new DataSourceTransactionManager(appDs));
@@ -62,6 +66,13 @@ class PostgresTenantRlsIntegrationTest {
   Integer visible=appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
    return app.queryForObject("SELECT COUNT(*) FROM audit_logs",Integer.class);
+  });
+  assertEquals(1,visible);
+ }
+ @Test void groupEnrollmentRowsAreRestrictedByTenantPolicy() {
+  Integer visible=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.queryForObject("SELECT COUNT(*) FROM group_enrollments",Integer.class);
   });
   assertEquals(1,visible);
  }
