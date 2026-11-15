@@ -22,12 +22,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final CenterMembershipService centerMembershipService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        // Never allow a center context from a previous request to leak into this request.
         CurrentCenterContext.clear();
 
         try {
@@ -44,26 +44,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
 
                         if (jwtService.isTokenValid(token, userDetails)) {
-                            UsernamePasswordAuthenticationToken authToken =
-                                    new UsernamePasswordAuthenticationToken(
-                                            userDetails,
-                                            null,
-                                            userDetails.getAuthorities()
-                                    );
-                            authToken.setDetails(
-                                    new WebAuthenticationDetailsSource().buildDetails(request)
-                            );
-                            SecurityContextHolder.getContext().setAuthentication(authToken);
+                            Long centerId = resolveCenterId(request, token);
 
-                            Long centerId = jwtService.extractCenterId(token);
-                            if (centerId != null) {
-                                CurrentCenterContext.set(centerId);
+                            // A client-supplied tenant header is never trusted by itself.
+                            // It must identify an active center membership for this user.
+                            if (centerId != null
+                                    && (!(userDetails instanceof AuthenticatedUser authenticatedUser)
+                                    || !centerMembershipService.isActiveMember(authenticatedUser.id(), centerId))) {
+                                SecurityContextHolder.clearContext();
+                                CurrentCenterContext.clear();
+                            } else {
+                                UsernamePasswordAuthenticationToken authToken =
+                                        new UsernamePasswordAuthenticationToken(
+                                                userDetails,
+                                                null,
+                                                userDetails.getAuthorities()
+                                        );
+                                authToken.setDetails(
+                                        new WebAuthenticationDetailsSource().buildDetails(request)
+                                );
+                                SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                                if (centerId != null) {
+                                    CurrentCenterContext.set(centerId);
+                                }
                             }
                         }
                     }
                 } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {
-                    // Leave the request unauthenticated. Spring Security will reject it
-                    // for protected endpoints using the configured authentication entry point.
                     SecurityContextHolder.clearContext();
                     CurrentCenterContext.clear();
                 }
@@ -71,8 +79,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
         } finally {
-            // ThreadLocal values must not survive servlet-container thread reuse.
             CurrentCenterContext.clear();
         }
+    }
+
+    private Long resolveCenterId(HttpServletRequest request, String token) {
+        String requestedCenterId = request.getHeader("X-Center-Id");
+        if (requestedCenterId != null && !requestedCenterId.isBlank()) {
+            return Long.parseLong(requestedCenterId);
+        }
+        return jwtService.extractCenterId(token);
     }
 }
