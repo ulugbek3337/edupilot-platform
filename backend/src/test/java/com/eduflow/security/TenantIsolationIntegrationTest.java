@@ -19,6 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -53,6 +54,9 @@ class TenantIsolationIntegrationTest {
 
     @Autowired
     private CenterMembershipRepository membershipRepository;
+
+    @Autowired
+    private JwtService jwtService;
 
     @Test
     void centersEndpointRejectsAnonymousRequests() throws Exception {
@@ -94,6 +98,74 @@ class TenantIsolationIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(allowedCenter.getId()))
                 .andExpect(jsonPath("$[0].slug").value("allowed-center"));
+    }
+
+
+    @Test
+    @Transactional
+    void jwtTenantHeaderIsAcceptedOnlyForAnActiveMembership() throws Exception {
+        User user = activeUser("tenant-owner@example.test");
+        Center ownCenter = centerRepository.save(new Center("Own Center", "jwt-own-center", CenterStatus.ACTIVE));
+        membershipRepository.save(new CenterMembership(ownCenter, user, Role.CENTER_ADMIN));
+
+        String token = jwtService.generateToken(user, ownCenter.getId());
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Center-Id", ownCenter.getId())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("tenant-owner@example.test"));
+    }
+
+    @Test
+    @Transactional
+    void jwtTenantHeaderCannotSwitchToAnotherUsersCenter() throws Exception {
+        User user = activeUser("tenant-user@example.test");
+        User otherUser = activeUser("other-tenant-user@example.test");
+        Center ownCenter = centerRepository.save(new Center("Own Center", "jwt-own-center-2", CenterStatus.ACTIVE));
+        Center foreignCenter = centerRepository.save(new Center("Foreign Center", "jwt-foreign-center", CenterStatus.ACTIVE));
+        membershipRepository.save(new CenterMembership(ownCenter, user, Role.TEACHER));
+        membershipRepository.save(new CenterMembership(foreignCenter, otherUser, Role.CENTER_ADMIN));
+
+        String token = jwtService.generateToken(user, ownCenter.getId());
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Center-Id", foreignCenter.getId())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @Transactional
+    void jwtTenantHeaderRejectsSuspendedMembership() throws Exception {
+        User user = activeUser("suspended-member@example.test");
+        Center center = centerRepository.save(new Center("Suspended Member Center", "jwt-suspended-member", CenterStatus.ACTIVE));
+        CenterMembership membership = new CenterMembership(center, user, Role.TEACHER);
+        membership.setStatus(MembershipStatus.SUSPENDED);
+        membershipRepository.save(membership);
+
+        String token = jwtService.generateToken(user, center.getId());
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Center-Id", center.getId())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @Transactional
+    void malformedTenantHeaderDoesNotAuthenticateRequest() throws Exception {
+        User user = activeUser("malformed-header@example.test");
+        String token = jwtService.generateToken(user, null);
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Center-Id", "not-a-number")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
     }
 
     private User activeUser(String email) {
