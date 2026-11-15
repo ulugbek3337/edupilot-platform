@@ -97,7 +97,7 @@ class CenterMembershipServiceTest {
         assertFalse(membershipService.isActiveMember(7L, 99L));
         assertThrows(AccessDeniedException.class,
                 () -> membershipService.assertRole(user, 99L, Role.CENTER_ADMIN));
-        verify(membershipRepository).findByCenterIdAndUserId(99L, 7L);
+        verify(membershipRepository, times(2)).findByCenterIdAndUserId(99L, 7L);
     }
 
     @Test
