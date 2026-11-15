@@ -9,7 +9,6 @@ import com.eduflow.entity.User;
 import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.CenterMembershipRepository;
 import com.eduflow.repository.CenterRepository;
-import com.eduflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +22,6 @@ public class CenterService {
 
     private final CenterRepository centerRepository;
     private final CenterMembershipRepository centerMembershipRepository;
-    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public List<Center> findAllForUser(Long userId) {
