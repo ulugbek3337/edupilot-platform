@@ -54,7 +54,7 @@ public class LocalizedSecurityErrorHandler implements AuthenticationEntryPoint, 
                 Instant.now(),
                 status.value(),
                 code,
-                messageSource.getMessage(code, null, locale),
+                messageSource.getMessage(code, null, code, locale),
                 Map.of()
         );
         response.setStatus(status.value());
