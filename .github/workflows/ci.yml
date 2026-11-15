@@ -68,3 +68,18 @@ jobs:
       - name: Audit npm dependencies
         continue-on-error: true
         run: npm audit --audit-level=high
+
+  infrastructure:
+    name: Docker Compose validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        env:
+          DB_NAME: edupilot_ci
+          DB_USERNAME: edupilot_ci
+          DB_PASSWORD: ci-only-database-password
+          REDIS_PASSWORD: ci-only-redis-password
+        run: docker compose config --quiet
