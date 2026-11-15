@@ -7,14 +7,8 @@ import org.springframework.stereotype.Component;
 public class TenantResolver {
 
     public Long resolve(HttpServletRequest request) {
-        String centerIdHeader = request.getHeader("X-Center-Id");
-        if (centerIdHeader != null && !centerIdHeader.isBlank()) {
-            try {
-                return Long.parseLong(centerIdHeader);
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
+        // X-Center-Id is validated by JwtAuthenticationFilter before it reaches
+        // CurrentCenterContext. Never parse an untrusted header in a service.
         return CurrentCenterContext.get();
     }
 }
