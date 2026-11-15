@@ -1,69 +1,19 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './components/LanguageSwitcher';
-
-function HomePage() {
-  const { t } = useTranslation('dashboard');
-  return (
-    <main className="page">
-      <section className="summary-grid">
-        <Card title={t('summary.centers')} value="12" />
-        <Card title={t('summary.teachers')} value="86" />
-        <Card title={t('summary.students')} value="1 320" />
-        <Card title={t('summary.attendance')} value="94%" />
-      </section>
-
-      <section className="intro-panel">
-        <h2>{t('description')}</h2>
-        <p>{t('foundation')}</p>
-      </section>
-    </main>
-  );
+import AcademicWorkspace from './components/AcademicWorkspace';
+import { api, centerKey, tokenKey, type AuthResult, type Center } from './api';
+function Login({onLogin}:{onLogin:(result:AuthResult)=>void}){
+ const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [error,setError]=useState('');const [busy,setBusy]=useState(false);
+ async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');try{const result=await api<AuthResult>('/auth/login',{method:'POST',body:{email,password}});onLogin(result);}catch(err){setError(err instanceof Error?err.message:'Kirish amalga oshmadi');}finally{setBusy(false);}}
+ return <main className="auth-shell"><form className="auth-card" onSubmit={submit}><p className="eyebrow">EduPilot LMS</p><h1>Tizimga kirish</h1><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username"/></label><label>Parol<input type="password" required value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/></label>{error&&<p className="error-message" role="alert">{error}</p>}<button className="primary-button" disabled={busy}>{busy?'Tekshirilmoqda…':'Kirish'}</button></form></main>;
 }
-
-function DashboardPage() {
-  const { t } = useTranslation('dashboard');
-  return (
-    <main className="page">
-      <h1>{t('title')}</h1>
-      <section className="dashboard-panel">
-        <p>{t('welcome')}</p>
-        <ul>
-          <li>{t('tasks.teachers')}</li>
-          <li>{t('tasks.attendance')}</li>
-          <li>{t('tasks.grades')}</li>
-          <li>{t('tasks.payments')}</li>
-        </ul>
-      </section>
-    </main>
-  );
-}
-
-function Card({ title, value }: { title: string; value: string }) {
-  return (
-    <article className="summary-card">
-      <p>{title}</p>
-      <h2>{value}</h2>
-    </article>
-  );
-}
-
-export default function App() {
-  const { t } = useTranslation('common');
-  return (
-    <>
-      <header className="site-header">
-        <Link className="brand" to="/">{t('appName')}</Link>
-        <nav className="main-navigation" aria-label={t('navigation.mainMenu')}>
-          <Link to="/">{t('navigation.home')}</Link>
-          <Link to="/dashboard">{t('navigation.dashboard')}</Link>
-        </nav>
-        <LanguageSwitcher />
-      </header>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-      </Routes>
-    </>
-  );
+export default function App(){
+ const {t}=useTranslation('common');const [token,setToken]=useState(()=>localStorage.getItem(tokenKey)??'');const [centers,setCenters]=useState<Center[]>([]);const [centerId,setCenterId]=useState<number>(()=>Number(localStorage.getItem(centerKey))||0);const [newCenter,setNewCenter]=useState('');const [error,setError]=useState('');
+ useEffect(()=>{if(!token)return;api<Center[]>('/centers',{token}).then(list=>{setCenters(list);if(!list.some(c=>c.id===centerId))setCenterId(list[0]?.id??0);}).catch(e=>setError(e instanceof Error?e.message:'Markazlarni yuklab bo‘lmadi'));},[token]);
+ function login(result:AuthResult){localStorage.setItem(tokenKey,result.accessToken);setToken(result.accessToken);}
+ async function createCenter(e:React.FormEvent){e.preventDefault();setError('');try{const c=await api<Center>(`/centers?name=${encodeURIComponent(newCenter)}`,{method:'POST',token});setCenters(v=>[...v,c]);setCenterId(c.id);localStorage.setItem(centerKey,String(c.id));setNewCenter('');}catch(e){setError(e instanceof Error?e.message:'Markaz yaratilmadi');}}
+ function chooseCenter(id:number){setCenterId(id);localStorage.setItem(centerKey,String(id));}
+ function logout(){localStorage.removeItem(tokenKey);localStorage.removeItem(centerKey);setToken('');setCenters([]);setCenterId(0);}
+ return <><header className="site-header"><a className="brand" href="/">EduPilot</a><nav className="main-navigation"><a href="/">Bosh sahifa</a><a href="#workspace">Boshqaruv</a></nav><div className="header-actions"><LanguageSwitcher/>{token&&<button className="secondary-button" onClick={logout}>Chiqish</button>}</div></header>{!token?<Login onLogin={login}/>:<main className="page" id="workspace">{error&&<p className="error-message" role="alert">{error}</p>}{centers.length===0?<section className="auth-card"><h1>O‘quv markazini yaratish</h1><p>Hisobingizga biriktirilgan markaz topilmadi. Ishni boshlash uchun markaz nomini kiriting.</p><form onSubmit={createCenter}><label>Markaz nomi<input required value={newCenter} onChange={e=>setNewCenter(e.target.value)}/></label><button className="primary-button">Markaz yaratish</button></form></section>:<><div className="center-toolbar"><label>Faol markaz<select value={centerId} onChange={e=>chooseCenter(Number(e.target.value))}>{centers.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label><span>{centers.length} ta markaz</span></div>{centers.find(c=>c.id===centerId)&&<AcademicWorkspace token={token} center={centers.find(c=>c.id===centerId)!}/>}</>}</main>}</>;
 }
