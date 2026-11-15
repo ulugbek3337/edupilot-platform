@@ -65,7 +65,7 @@ public class StudentController {
             @AuthenticationPrincipal AuthenticatedUser principal,
             @PathVariable Long studentId) {
         Long centerId = requireCenter(principal.id());
-        membershipService.assertRole(principal.id(), centerId, Role.CENTER_ADMIN);
+        membershipService.assertRoleForUserId(principal.id(), centerId, Role.CENTER_ADMIN);
         studentService.deactivate(centerId, studentId);
         return ResponseEntity.noContent().build();
     }
@@ -76,7 +76,7 @@ public class StudentController {
             throw new com.eduflow.exception.EduFlowException(
                     HttpStatus.BAD_REQUEST, "tenant.context.required");
         }
-        membershipService.assertRole(userId, centerId, Role.CENTER_ADMIN, Role.TEACHER);
+        membershipService.assertRoleForUserId(userId, centerId, Role.CENTER_ADMIN, Role.TEACHER);
         return centerId;
     }
 
