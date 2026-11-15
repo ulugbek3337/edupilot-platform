@@ -1,5 +1,5 @@
 package com.eduflow.controller;
-import com.eduflow.dto.AcademicDtos.*; import com.eduflow.entity.*; import com.eduflow.security.*; import com.eduflow.service.AcademicService; import jakarta.validation.Valid; import lombok.RequiredArgsConstructor; import org.springframework.http.*; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.security.core.annotation.AuthenticationPrincipal; import org.springframework.web.bind.annotation.*; import java.util.*;
+import com.eduflow.dto.AcademicDtos.*; import com.eduflow.entity.*; import com.eduflow.security.*; import com.eduflow.service.AcademicService; import com.eduflow.service.AuditLogService; import jakarta.validation.Valid; import lombok.RequiredArgsConstructor; import org.springframework.http.*; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.security.core.annotation.AuthenticationPrincipal; import org.springframework.web.bind.annotation.*; import java.util.*;
 @RestController @RequestMapping("/api/v1") @RequiredArgsConstructor @PreAuthorize("hasRole('USER')")
 public class AcademicController {
  private final AcademicService service; private final CenterMembershipService memberships; private final AuditLogService audit;
