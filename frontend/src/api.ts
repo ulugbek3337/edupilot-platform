@@ -1,5 +1,5 @@
 import { accessTokenStorageKey } from './i18n';
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
+const API_BASE = '/api/v1';
 export const tokenKey = accessTokenStorageKey;
 export const centerKey = 'edupilot.centerId';
 export type ApiOptions = { method?: string; body?: unknown; token?: string; centerId?: number };
