@@ -7,6 +7,7 @@ import com.eduflow.entity.Student;
 import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.CenterRepository;
 import com.eduflow.repository.StudentRepository;
+import com.eduflow.security.TenantRlsContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,6 +28,9 @@ class StudentServiceTest {
 
     @Mock
     private CenterRepository centerRepository;
+
+    @Mock
+    private TenantRlsContext tenantRlsContext;
 
     @InjectMocks
     private StudentService studentService;
