@@ -21,19 +21,24 @@ public class CenterMembershipService {
 
     @Transactional(readOnly = true)
     public boolean isMember(User user, Long centerId) {
-        return findActiveMembership(user, centerId).isPresent();
+        return user != null && isActiveMember(user.getId(), centerId);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isActiveMember(Long userId, Long centerId) {
+        return findActiveMembership(userId, centerId).isPresent();
     }
 
     @Transactional(readOnly = true)
     public void assertAccess(User user, Long centerId) {
-        if (findActiveMembership(user, centerId).isEmpty()) {
+        if (user == null || findActiveMembership(user.getId(), centerId).isEmpty()) {
             throw new AccessDeniedException("User is not an active member of this center.");
         }
     }
 
     @Transactional(readOnly = true)
     public void assertRole(User user, Long centerId, Role... roles) {
-        CenterMembership membership = findActiveMembership(user, centerId)
+        CenterMembership membership = findActiveMembership(user == null ? null : user.getId(), centerId)
                 .orElseThrow(() -> new AccessDeniedException("User is not an active member of this center."));
 
         for (Role role : roles) {
@@ -45,12 +50,12 @@ public class CenterMembershipService {
         throw new AccessDeniedException("User does not have required role for this action.");
     }
 
-    private Optional<CenterMembership> findActiveMembership(User user, Long centerId) {
-        if (user == null || user.getId() == null || centerId == null) {
+    private Optional<CenterMembership> findActiveMembership(Long userId, Long centerId) {
+        if (userId == null || centerId == null) {
             return Optional.empty();
         }
 
-        return centerMembershipRepository.findByCenterIdAndUserId(centerId, user.getId())
+        return centerMembershipRepository.findByCenterIdAndUserId(centerId, userId)
                 .filter(membership -> membership.getStatus() == MembershipStatus.ACTIVE)
                 .filter(membership -> membership.getCenter() != null)
                 .filter(membership -> membership.getCenter().getStatus() == CenterStatus.ACTIVE);
