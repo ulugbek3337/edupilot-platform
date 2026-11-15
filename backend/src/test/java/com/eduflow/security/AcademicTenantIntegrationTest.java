@@ -19,5 +19,5 @@ class AcademicTenantIntegrationTest {
   mvc.perform(get("/api/v1/students/"+student.getId()+"/grades").header("Authorization","Bearer "+token).header("X-Center-Id",center.getId())).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
   mvc.perform(get("/api/v1/lessons/"+lesson.get("id").asLong()+"/attendance").header("Authorization","Bearer "+token).header("X-Center-Id",center.getId())).andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("PRESENT"));
  }
- private JsonNode post(String token,Long centerId,String path,String body) throws Exception {String response=mvc.perform(post(path).header("Authorization","Bearer "+token).header("X-Center-Id",centerId).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();return mapper.readTree(response);}
+ private JsonNode post(String token,Long centerId,String path,String body) throws Exception {String response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(path).header("Authorization","Bearer "+token).header("X-Center-Id",centerId).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();return mapper.readTree(response);}
 }
