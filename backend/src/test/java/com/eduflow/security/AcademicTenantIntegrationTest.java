@@ -65,25 +65,25 @@ class AcademicTenantIntegrationTest {
         Student student = students.save(new Student(center, "ST-AC-1", "Ali", "Valiyev", null, null, null));
         String token = jwt.generateToken(admin, center.getId());
 
-        JsonNode teacher = post(token, center.getId(), "/api/v1/teachers", """
+        JsonNode teacher = createRecord(token, center.getId(), "/api/v1/teachers", """
             {"teacherCode":"T-01","firstName":"Dilshod","lastName":"Karimov"}
             """);
-        JsonNode course = post(token, center.getId(), "/api/v1/courses", """
+        JsonNode course = createRecord(token, center.getId(), "/api/v1/courses", """
             {"courseCode":"MATH","name":"Matematika"}
             """);
-        JsonNode group = post(token, center.getId(), "/api/v1/groups", """
+        JsonNode group = createRecord(token, center.getId(), "/api/v1/groups", """
             {"courseId":%d,"teacherId":%d,"groupCode":"G-01","name":"7-A"}
             """.formatted(course.get("id").asLong(), teacher.get("id").asLong()));
-        post(token, center.getId(), "/api/v1/group-enrollments", """
+        createRecord(token, center.getId(), "/api/v1/group-enrollments", """
             {"groupId":%d,"studentId":%d}
             """.formatted(group.get("id").asLong(), student.getId()));
-        JsonNode lesson = post(token, center.getId(), "/api/v1/lessons", """
+        JsonNode lesson = createRecord(token, center.getId(), "/api/v1/lessons", """
             {"groupId":%d,"title":"Algebra","startsAt":"2026-11-16T09:00:00","endsAt":"2026-11-16T10:00:00"}
             """.formatted(group.get("id").asLong()));
-        post(token, center.getId(), "/api/v1/attendance", """
+        createRecord(token, center.getId(), "/api/v1/attendance", """
             {"lessonId":%d,"studentId":%d,"status":"PRESENT"}
             """.formatted(lesson.get("id").asLong(), student.getId()));
-        post(token, center.getId(), "/api/v1/grades", """
+        createRecord(token, center.getId(), "/api/v1/grades", """
             {"studentId":%d,"groupId":%d,"title":"Nazorat ishi","score":18,"maxScore":20}
             """.formatted(student.getId(), group.get("id").asLong()));
 
@@ -145,7 +145,7 @@ class AcademicTenantIntegrationTest {
             .andExpect(status().isForbidden());
     }
 
-    private JsonNode post(String token, Long centerId, String path, String body) throws Exception {
+    private JsonNode createRecord(String token, Long centerId, String path, String body) throws Exception {
         String response = mvc.perform(post(path)
                 .header("Authorization", "Bearer " + token)
                 .header("X-Center-Id", centerId)
