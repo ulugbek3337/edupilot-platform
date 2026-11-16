@@ -82,7 +82,7 @@ public class StudentController {
             throw new com.eduflow.exception.EduFlowException(
                     HttpStatus.BAD_REQUEST, "tenant.context.required");
         }
-        membershipService.assertRoleForUserId(userId, centerId, Role.CENTER_ADMIN, Role.TEACHER);
+        membershipService.assertRoleForUserId(userId, centerId, Role.CENTER_ADMIN);
         return centerId;
     }
 
