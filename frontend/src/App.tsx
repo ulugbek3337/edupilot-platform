@@ -87,6 +87,7 @@ export default function App() {
   const [isTeacher, setIsTeacher] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [userMemberships, setUserMemberships] = useState<Array<{ centerId: number; role: string }>>([]);
 
   useEffect(() => {
     if (!token) {
@@ -94,9 +95,10 @@ export default function App() {
       return;
     }
     setAuthChecked(false);
-    api<{ mustChangePassword: boolean }>('/auth/me', { token })
+    api<{ mustChangePassword: boolean; memberships: Array<{ centerId: number; role: string }> }>('/auth/me', { token })
       .then(me => {
         setMustChangePassword(me.mustChangePassword);
+        setUserMemberships(me.memberships ?? []);
       })
       .catch(() => setMustChangePassword(false))
       .finally(() => setAuthChecked(true));
@@ -113,25 +115,20 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    if (!token || !centerId) {
+    if (!token || !centerId || !authChecked) {
       setIsParent(false); setIsStudent(false); setIsTeacher(false);
       return;
     }
-    let cancelled = false;
-    api<unknown>('/teacher-portal/me', { token, centerId })
-      .then(() => { if (!cancelled) { setIsTeacher(true); setIsStudent(false); setIsParent(false); } })
-      .catch(() => api<unknown>('/student-portal/me', { token, centerId })
-        .then(() => { if (!cancelled) { setIsStudent(true); setIsTeacher(false); setIsParent(false); } })
-        .catch(() => api<unknown[]>('/parents/children', { token, centerId })
-          .then(() => { if (!cancelled) { setIsParent(true); setIsStudent(false); setIsTeacher(false); } })
-          .catch(() => { if (!cancelled) { setIsParent(false); setIsStudent(false); setIsTeacher(false); } })));
-    return () => { cancelled = true; };
-  }, [token, centerId, mustChangePassword]);
+    const roles = userMemberships.filter(m => m.centerId === centerId).map(m => m.role);
+    setIsTeacher(roles.includes('TEACHER'));
+    setIsStudent(roles.includes('STUDENT'));
+    setIsParent(roles.includes('PARENT'));
+  }, [token, centerId, authChecked, userMemberships]);
 
   function login(result: AuthResult) {
     localStorage.setItem(tokenKey, result.accessToken);
     setMustChangePassword(result.mustChangePassword);
-    if (result.mustChangePassword) setIsStudent(true);
+    setIsParent(false); setIsStudent(false); setIsTeacher(false);
     setToken(result.accessToken);
   }
 
