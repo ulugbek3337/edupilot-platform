@@ -15,6 +15,7 @@ import com.eduflow.repository.RefreshTokenRepository;
 import com.eduflow.repository.UserRepository;
 import com.eduflow.security.CurrentCenterContext;
 import com.eduflow.security.JwtService;
+import com.eduflow.security.TenantRlsContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -40,6 +41,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final TenantRlsContext tenantRlsContext;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -78,6 +80,14 @@ public class AuthService {
             throw new EduFlowException(401, "auth.refresh.invalid");
         }
 
+        // The verified token carries the identity required by refresh-token RLS.
+        // Establish the user scope before looking up the persisted row.
+        Long tokenUserId = jwtService.extractUserId(token);
+        if (tokenUserId == null) {
+            throw new EduFlowException(401, "auth.refresh.invalid");
+        }
+        tenantRlsContext.applyUser(tokenUserId);
+
         // Lock the persisted token row so two simultaneous refresh requests
         // cannot both rotate the same refresh token successfully.
         // New rows store SHA-256 digests. The raw-token fallback is temporary
@@ -103,7 +113,6 @@ public class AuthService {
         }
 
         User user = refreshToken.getUser();
-        Long tokenUserId = jwtService.extractUserId(token);
         String tokenSubject = jwtService.extractUsername(token);
 
         if (user == null
@@ -140,6 +149,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);
         User saved = userRepository.save(user);
+        tenantRlsContext.applyUser(user.getId());
         refreshTokenRepository.deleteByUserId(user.getId());
         return saved;
     }
@@ -165,6 +175,7 @@ public class AuthService {
     }
 
     private AuthResponse buildAuthResponse(User user, Long centerId) {
+        tenantRlsContext.applyUser(user.getId());
         String accessToken = jwtService.generateToken(user, centerId);
         String refreshTokenValue = jwtService.generateRefreshToken(user);
 
