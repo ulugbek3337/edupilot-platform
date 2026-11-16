@@ -3,6 +3,7 @@ import jakarta.validation.constraints.NotNull; import java.time.Instant; import 
 public final class PortalDtos {
  private PortalDtos(){}
  public record ParentLinkRequest(@NotNull Long parentUserId,@NotNull Long studentId){}
+ public record ParentAccountOption(Long userId,String email,String firstName,String lastName){}
  public record ParentLinkResponse(Long id,Long parentUserId,String parentEmail,Long studentId,String studentName,boolean active,Instant createdAt){}
  public record ChildResponse(Long id,String studentNumber,String firstName,String lastName){}
  public record NotificationResponse(Long id,String type,String title,String message,Instant createdAt,Instant readAt){}
