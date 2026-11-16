@@ -53,12 +53,12 @@ public class TeacherPortalService {
         if (email == null || email.isBlank() || email.length() > 255 || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))
             throw new EduFlowException(HttpStatus.BAD_REQUEST, "teacher.account.email.invalid");
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+        tenantRlsContext.applyUserEmail(normalizedEmail);
         if (users.existsByEmail(normalizedEmail)) throw new EduFlowException(HttpStatus.CONFLICT, "auth.email.already-registered");
 
         byte[] bytes = new byte[18];
         random.nextBytes(bytes);
         String temporaryPassword = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        tenantRlsContext.applyUserEmail(normalizedEmail);
         User user = new User(normalizedEmail, passwordEncoder.encode(temporaryPassword), teacher.getFirstName(), teacher.getLastName());
         user.setMustChangePassword(true);
         user = users.save(user);
