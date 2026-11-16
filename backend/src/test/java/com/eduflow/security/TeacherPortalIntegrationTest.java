@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -198,7 +199,7 @@ class TeacherPortalIntegrationTest {
                                 """.formatted(otherStudent.getId(), otherGroup.getId())))
                 .andExpect(status().isNotFound());
 
-        var auditActions = auditLogs.findTop200ByCenter_IdOrderByCreatedAtDesc(center.getId()).stream()
+        var auditActions = auditLogs.searchByCenter(center.getId(), null, null, null, null, null, PageRequest.of(0, 200)).stream()
                 .map(AuditLog::getAction).toList();
         assertTrue(auditActions.contains("TEACHER_ATTENDANCE_MARKED"));
         assertTrue(auditActions.contains("TEACHER_GRADE_CREATED"));
