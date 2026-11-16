@@ -102,7 +102,7 @@ class AcademicTenantIntegrationTest {
 
     @Test
     @Transactional
-    void teacherCannotCreateAdminManagedAcademicResources() throws Exception {
+    void teacherCannotAccessCenterWideAcademicDirectoriesOrCreateAdminManagedResources() throws Exception {
         User teacher = new User("academic-teacher@example.test", "not-a-real-password-hash", "Academic", "Teacher");
         teacher.setEnabled(true);
         teacher.setStatus(UserStatus.ACTIVE);
@@ -115,7 +115,7 @@ class AcademicTenantIntegrationTest {
         mvc.perform(get("/api/v1/teachers")
                 .header("Authorization", "Bearer " + token)
                 .header("X-Center-Id", center.getId()))
-            .andExpect(status().isOk());
+            .andExpect(status().isForbidden());
 
         mvc.perform(post("/api/v1/teachers")
                 .header("Authorization", "Bearer " + token)
