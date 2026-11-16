@@ -27,8 +27,8 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    user: ${DB_MIGRATION_USERNAME:${DB_USERNAME:eduflow}}
-    password: ${DB_MIGRATION_PASSWORD:${DB_PASSWORD}}
+    user: ${DB_MIGRATION_USERNAME}
+    password: ${DB_MIGRATION_PASSWORD}
   mail:
     host: localhost
     port: 1025
