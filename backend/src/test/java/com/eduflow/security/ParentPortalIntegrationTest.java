@@ -58,6 +58,15 @@ class ParentPortalIntegrationTest {
   mvc.perform(post("/api/v1/parents/links").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"parentUserId\":"+parent.getId()+",\"studentId\":"+student.getId()+"}"))
    .andExpect(status().isCreated());
   org.junit.jupiter.api.Assertions.assertTrue(parentLinks.findByCenter_IdAndParent_IdAndStudent_IdAndActiveTrue(center.getId(),parent.getId(),student.getId()).isPresent(),"An inactive parent link should be reactivated instead of violating the unique constraint.");
+  Long activeLinkId=parentLinks.findByCenter_IdAndParent_IdAndStudent_IdAndActiveTrue(center.getId(),parent.getId(),student.getId()).orElseThrow().getId();
+  mvc.perform(delete("/api/v1/parents/links/"+activeLinkId).header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()))
+   .andExpect(status().isNoContent());
+  mvc.perform(get("/api/v1/parents/children").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+  mvc.perform(get("/api/v1/parents/children/"+student.getId()+"/grades").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
+   .andExpect(status().isNotFound());
+  mvc.perform(delete("/api/v1/parents/links/"+activeLinkId).header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
+   .andExpect(status().isForbidden());
  }
  private User saveUser(String email){User u=new User(email,"not-a-real-password-hash","Integration","User");u.setEnabled(true);u.setStatus(UserStatus.ACTIVE);return users.save(u);}
 }
