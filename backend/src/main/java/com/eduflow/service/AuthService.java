@@ -82,13 +82,18 @@ public class AuthService {
         // cannot both rotate the same refresh token successfully.
         // New rows store SHA-256 digests. The raw-token fallback is temporary
         // compatibility for sessions created before this security upgrade.
-        Optional<RefreshToken> persistedToken = refreshTokenRepository
-                .findByTokenForUpdate(hashRefreshToken(token));
-        if (persistedToken.isEmpty()) {
+        String tokenHash = hashRefreshToken(token);
+        Optional<RefreshToken> persistedToken = refreshTokenRepository.findByTokenForUpdate(tokenHash);
+        boolean legacyRawToken = persistedToken.isEmpty();
+        if (legacyRawToken) {
             persistedToken = refreshTokenRepository.findByTokenForUpdate(token);
         }
         RefreshToken refreshToken = persistedToken
                 .orElseThrow(() -> new EduFlowException(401, "auth.refresh.invalid"));
+        if (legacyRawToken) {
+            // Upgrade legacy rows in place so the raw token is not retained after use.
+            refreshToken.setToken(tokenHash);
+        }
 
         Instant now = Instant.now();
         if (refreshToken.isRevoked()
