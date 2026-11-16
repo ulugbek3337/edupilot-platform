@@ -4,8 +4,11 @@ import com.eduflow.dto.StudentDtos.StudentRequest;
 import com.eduflow.entity.Center;
 import com.eduflow.entity.CenterStatus;
 import com.eduflow.entity.Student;
+import com.eduflow.entity.StudentStatus;
+import com.eduflow.entity.User;
 import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.CenterRepository;
+import com.eduflow.repository.RefreshTokenRepository;
 import com.eduflow.repository.StudentRepository;
 import com.eduflow.security.TenantRlsContext;
 import org.junit.jupiter.api.Test;
@@ -28,6 +31,9 @@ class StudentServiceTest {
 
     @Mock
     private CenterRepository centerRepository;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
     private TenantRlsContext tenantRlsContext;
@@ -61,6 +67,38 @@ class StudentServiceTest {
         assertThrows(EduFlowException.class, () -> studentService.create(10L,
                 new StudentRequest("S-001", "Ali", "Valiyev", null, null, null)));
         verify(studentRepository, never()).save(any());
+    }
+
+    @Test
+    void deactivatingStudentDisablesLoginAndRevokesRefreshTokens() {
+        Center center = new Center("Alpha", "alpha", CenterStatus.ACTIVE);
+        Student student = new Student(center, "S-001", "Ali", "Valiyev", null, null, null);
+        User user = new User("student-10-1@students.edupilot.local", "hash", "Ali", "Valiyev");
+        user.setId(700L);
+        user.setStudentAccount(true);
+        student.setUser(user);
+
+        when(centerRepository.findById(10L)).thenReturn(Optional.of(center));
+        when(studentRepository.findByIdAndCenter_Id(1L, 10L)).thenReturn(Optional.of(student));
+
+        studentService.deactivate(10L, 1L);
+
+        assertEquals(StudentStatus.INACTIVE, student.getStatus());
+        assertFalse(user.isEnabled());
+        verify(refreshTokenRepository).deleteByUserId(700L);
+    }
+
+    @Test
+    void deactivatingStudentWithoutProvisionedAccountDoesNotRevokeAnotherUser() {
+        Center center = new Center("Alpha", "alpha", CenterStatus.ACTIVE);
+        Student student = new Student(center, "S-002", "Sara", "Aliyeva", null, null, null);
+        when(centerRepository.findById(10L)).thenReturn(Optional.of(center));
+        when(studentRepository.findByIdAndCenter_Id(2L, 10L)).thenReturn(Optional.of(student));
+
+        studentService.deactivate(10L, 2L);
+
+        assertEquals(StudentStatus.INACTIVE, student.getStatus());
+        verifyNoInteractions(refreshTokenRepository);
     }
 
     @Test
