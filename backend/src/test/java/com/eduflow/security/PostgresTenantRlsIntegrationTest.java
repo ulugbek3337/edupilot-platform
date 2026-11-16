@@ -264,6 +264,75 @@ class PostgresTenantRlsIntegrationTest {
   }));
  }
 
+ @Test void globalUserRowsAreHiddenWithoutAnIdentityOrTenantContext() {
+  Integer visible=app.queryForObject("SELECT COUNT(*) FROM users",Integer.class);
+  assertEquals(0,visible);
+ }
+
+ @Test void unauthenticatedLoginLookupCanSeeOnlyTheSubmittedEmail() {
+  Integer own=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_email', ?, true)",String.class,"parent-one@example.test");
+   return app.queryForObject("SELECT COUNT(*) FROM users",Integer.class);
+  });
+  Integer other=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_email', ?, true)",String.class,"parent-one@example.test");
+   return app.queryForObject("SELECT COUNT(*) FROM users WHERE email='parent-two@example.test'",Integer.class);
+  });
+  assertEquals(1,own);
+  assertEquals(0,other);
+ }
+
+ @Test void authenticatedUserCanReadOnlyTheirOwnGlobalIdentity() {
+  Integer own=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.queryForObject("SELECT COUNT(*) FROM users",Integer.class);
+  });
+  Integer other=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.queryForObject("SELECT COUNT(*) FROM users WHERE id=602",Integer.class);
+  });
+  assertEquals(1,own);
+  assertEquals(0,other);
+ }
+
+ @Test void selectedTenantCanReadOnlyItsOwnMemberIdentities() {
+  Integer ownTenant=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.queryForObject("SELECT COUNT(*) FROM users",Integer.class);
+  });
+  Integer otherTenant=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.queryForObject("SELECT COUNT(*) FROM users WHERE id=602",Integer.class);
+  });
+  assertEquals(4,ownTenant);
+  assertEquals(0,otherTenant);
+ }
+
+ @Test void userIdentityInsertRequiresMatchingEmailContext() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.update("INSERT INTO users(email,password_hash,first_name,last_name) VALUES ('forbidden@example.test','hash','No','Context')");
+   return null;
+  }));
+  Integer inserted=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_email', ?, true)",String.class,"created-by-email@example.test");
+   return app.update("INSERT INTO users(email,password_hash,first_name,last_name) VALUES ('created-by-email@example.test','hash','Scoped','User')");
+  });
+  assertEquals(1,inserted);
+ }
+
+ @Test void globalUserUpdatesCannotReachAnotherIdentity() {
+  Integer changed=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.update("UPDATE users SET first_name='Tampered' WHERE id=602");
+  });
+  assertEquals(0,changed);
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   app.update("UPDATE users SET id=602 WHERE id=601");
+   return null;
+  }));
+ }
+
  @Test void membershipRowsAreHiddenWithoutUserOrCenterContext() {
   Integer visible=app.queryForObject("SELECT COUNT(*) FROM center_memberships",Integer.class);
   assertEquals(0,visible);
