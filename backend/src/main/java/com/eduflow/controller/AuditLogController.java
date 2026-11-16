@@ -6,7 +6,7 @@ import com.eduflow.exception.EduFlowException;
 import com.eduflow.security.AuthenticatedUser;
 import com.eduflow.security.CurrentCenterContext;
 import com.eduflow.service.AuditLogService;
-import com.eduflow.service.CenterMembershipService;
+import com.eduflow.security.CenterMembershipService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
