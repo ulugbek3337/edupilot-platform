@@ -66,7 +66,8 @@ public class AuthController {
                 user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getLanguagePreference().getCode()
+                user.getLanguagePreference().getCode(),
+                user.isMustChangePassword()
         );
     }
 }
