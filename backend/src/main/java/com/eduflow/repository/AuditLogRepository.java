@@ -11,13 +11,13 @@ import java.util.List;
 
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     @Query("""
-            select a from AuditLog a
+            select a from AuditLog a left join a.actor actor
             where a.center.id = :centerId
               and (:action is null or a.action = :action)
               and (:entityType is null or a.entityType = :entityType)
-              and (:actorUserId is null or a.actor.id = :actorUserId)
-              and (:from is null or a.createdAt >= :from)
-              and (:to is null or a.createdAt < :to)
+              and (:actorUserId is null or actor.id = :actorUserId)
+              and (:fromDate is null or a.createdAt >= :fromDate)
+              and (:toDate is null or a.createdAt < :toDate)
             order by a.createdAt desc
             """)
     List<AuditLog> searchByCenter(
@@ -25,8 +25,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
             @Param("action") String action,
             @Param("entityType") String entityType,
             @Param("actorUserId") Long actorUserId,
-            @Param("from") Instant from,
-            @Param("to") Instant to,
+            @Param("fromDate") Instant fromDate,
+            @Param("toDate") Instant toDate,
             Pageable pageable
     );
 }
