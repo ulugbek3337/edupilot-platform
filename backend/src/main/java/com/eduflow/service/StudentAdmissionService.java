@@ -31,10 +31,10 @@ public class StudentAdmissionService {
 
     @Transactional
     public StudentAdmissionResponse admit(Long centerId, StudentAdmissionRequest request) {
+        tenantRlsContext.apply(centerId);
         Center center = centers.findById(centerId)
                 .filter(c -> c.getStatus() == CenterStatus.ACTIVE)
                 .orElseThrow(() -> new EduFlowException(HttpStatus.NOT_FOUND, "center.not-found"));
-        tenantRlsContext.apply(centerId);
 
         String number = request.studentNumber().trim();
         if (students.existsByCenter_IdAndStudentNumber(centerId, number)) {
