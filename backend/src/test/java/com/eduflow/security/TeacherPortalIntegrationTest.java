@@ -50,7 +50,8 @@ class TeacherPortalIntegrationTest {
     @Autowired private LessonRepository lessons;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private AttendanceRepository attendance;
-    @Autowired private JwtService jwt;\n    @Autowired private RefreshTokenRepository refreshTokens;
+    @Autowired private JwtService jwt;
+    @Autowired private RefreshTokenRepository refreshTokens;
 
     @Test
     @Transactional
@@ -212,13 +213,13 @@ class TeacherPortalIntegrationTest {
                         .header("Authorization", "Bearer " + adminToken)
                         .header("X-Center-Id", center.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\\\"email\\\":\\\"madina@example.test\\\"}"))
+                        .content("{\"email\":\"madina@example.test\"}"))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         String temporaryPassword = mapper.readTree(credentialsJson).get("temporaryPassword").asText();
         String loginJson = mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\\\"email\\\":\\\"madina@example.test\\\",\\\"password\\\":\\\"%s\\\"}", temporaryPassword)))
+                        .content(String.format("{\"email\":\"madina@example.test\",\"password\":\"%s\"}", temporaryPassword)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         JsonNode login = mapper.readTree(loginJson);
