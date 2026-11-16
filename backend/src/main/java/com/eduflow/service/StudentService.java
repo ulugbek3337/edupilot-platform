@@ -89,6 +89,7 @@ public class StudentService {
         // invalidates existing access tokens as well as preventing future logins.
         if (student.getUser() != null && student.getUser().isStudentAccount()) {
             student.getUser().setEnabled(false);
+            tenantRlsContext.applyUser(student.getUser().getId());
             refreshTokenRepository.deleteByUserId(student.getUser().getId());
         }
     }
