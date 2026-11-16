@@ -264,6 +264,67 @@ class PostgresTenantRlsIntegrationTest {
   }));
  }
 
+ @Test void centerMetadataIsHiddenWithoutAnIdentityOrTenantContext() {
+  Integer visible=app.queryForObject("SELECT COUNT(*) FROM centers",Integer.class);
+  assertEquals(0,visible);
+ }
+
+ @Test void userCanReadOnlyCentersWhereTheyHaveMembership() {
+  Integer own=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.queryForObject("SELECT COUNT(*) FROM centers",Integer.class);
+  });
+  Integer foreign=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.queryForObject("SELECT COUNT(*) FROM centers WHERE id=202",Integer.class);
+  });
+  assertEquals(1,own);
+  assertEquals(0,foreign);
+ }
+
+ @Test void selectedCenterContextCanReadOnlyThatCenterMetadata() {
+  Integer own=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.queryForObject("SELECT COUNT(*) FROM centers",Integer.class);
+  });
+  Integer foreign=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.queryForObject("SELECT COUNT(*) FROM centers WHERE id=202",Integer.class);
+  });
+  assertEquals(1,own);
+  assertEquals(0,foreign);
+ }
+
+ @Test void centerInsertRequiresCreatorToMatchAuthenticatedUser() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.update("INSERT INTO centers(name,slug,status,created_by_user_id) VALUES ('Invalid','invalid-center','ACTIVE',601)");
+   return null;
+  }));
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   app.update("INSERT INTO centers(name,slug,status,created_by_user_id) VALUES ('Wrong Owner','wrong-owner','ACTIVE',602)");
+   return null;
+  }));
+  Integer inserted=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.update("INSERT INTO centers(name,slug,status,created_by_user_id) VALUES ('Owned Center','owned-center','ACTIVE',601)");
+  });
+  assertEquals(1,inserted);
+ }
+
+ @Test void runtimeRoleCannotUpdateOrDeleteCenterMetadata() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("UPDATE centers SET name='Tampered' WHERE id=101");
+   return null;
+  }));
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("DELETE FROM centers WHERE id=101");
+   return null;
+  }));
+ }
+
  @Test void globalUserRowsAreHiddenWithoutAnIdentityOrTenantContext() {
   Integer visible=app.queryForObject("SELECT COUNT(*) FROM users",Integer.class);
   assertEquals(0,visible);
