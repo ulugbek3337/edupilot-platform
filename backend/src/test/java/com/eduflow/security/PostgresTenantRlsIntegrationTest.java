@@ -124,6 +124,20 @@ class PostgresTenantRlsIntegrationTest {
    return null;
   }));
  }
+ @Test void enrollmentCannotReferenceGroupFromAnotherCenter() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO group_enrollments(center_id,group_id,student_id,active) VALUES (101,502,1,TRUE)");
+   return null;
+  }));
+ }
+ @Test void enrollmentCannotReferenceStudentFromAnotherCenter() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO group_enrollments(center_id,group_id,student_id,active) VALUES (101,501,2,TRUE)");
+   return null;
+  }));
+ }
  @Test void tenantCannotInsertRowsForAnotherCenter() {
   assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
