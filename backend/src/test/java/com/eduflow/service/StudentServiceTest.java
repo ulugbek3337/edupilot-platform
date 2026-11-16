@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -88,6 +89,8 @@ class StudentServiceTest {
 
         when(centerRepository.findById(10L)).thenReturn(Optional.of(center));
         when(studentRepository.findByIdAndCenter_Id(1L, 10L)).thenReturn(Optional.of(student));
+        when(groupEnrollments.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L)).thenReturn(List.of());
+        when(parentLinks.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L)).thenReturn(List.of());
 
         studentService.deactivate(10L, 1L);
 
@@ -104,6 +107,8 @@ class StudentServiceTest {
         Student student = new Student(center, "S-002", "Sara", "Aliyeva", null, null, null);
         when(centerRepository.findById(10L)).thenReturn(Optional.of(center));
         when(studentRepository.findByIdAndCenter_Id(2L, 10L)).thenReturn(Optional.of(student));
+        when(groupEnrollments.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 2L)).thenReturn(List.of());
+        when(parentLinks.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 2L)).thenReturn(List.of());
 
         studentService.deactivate(10L, 2L);
 
