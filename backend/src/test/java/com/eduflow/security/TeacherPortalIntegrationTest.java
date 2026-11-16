@@ -50,7 +50,7 @@ class TeacherPortalIntegrationTest {
     @Autowired private LessonRepository lessons;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private AttendanceRepository attendance;
-    @Autowired private JwtService jwt;
+    @Autowired private JwtService jwt;\n    @Autowired private RefreshTokenRepository refreshTokens;
 
     @Test
     @Transactional
@@ -195,6 +195,55 @@ class TeacherPortalIntegrationTest {
                                 {"studentId":%d,"groupId":%d,"title":"Unauthorized grade","score":90,"maxScore":100}
                                 """.formatted(otherStudent.getId(), otherGroup.getId())))
                 .andExpect(status().isNotFound());
+    }
+
+
+    @Test
+    @Transactional
+    void deactivatingTeacherRevokesAccountAndRefreshTokens() throws Exception {
+        User admin = activeUser("teacher-lifecycle-admin@example.test");
+        Center center = centers.save(new Center("Teacher Lifecycle Center", "teacher-lifecycle-center", CenterStatus.ACTIVE));
+        memberships.save(new CenterMembership(center, admin, Role.CENTER_ADMIN));
+        Teacher teacher = teachers.save(new Teacher(center, "T-LIFECYCLE-01", "Madina", "Rasulova",
+                "madina@example.test", null, "Fizika"));
+
+        String adminToken = jwt.generateToken(admin, center.getId());
+        String credentialsJson = mvc.perform(post("/api/v1/teachers/" + teacher.getId() + "/account")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Center-Id", center.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"email":"madina@example.test"}"""))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String temporaryPassword = mapper.readTree(credentialsJson).get("temporaryPassword").asText();
+        String loginJson = mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"madina@example.test","password":"%s"}
+                                """.formatted(temporaryPassword)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode login = mapper.readTree(loginJson);
+        String accessToken = login.get("accessToken").asText();
+        String refreshToken = login.get("refreshToken").asText();
+        User teacherUser = users.findByEmail("madina@example.test").orElseThrow();
+        assertTrue(teacherUser.isEnabled());
+        assertTrue(memberships.findByCenterIdAndUserId(center.getId(), teacherUser.getId()).isPresent());
+
+        mvc.perform(delete("/api/v1/teachers/" + teacher.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Center-Id", center.getId()))
+                .andExpect(status().isNoContent());
+
+        assertFalse(users.findById(teacherUser.getId()).orElseThrow().isEnabled());
+        assertEquals(MembershipStatus.INACTIVE,
+                memberships.findByCenterIdAndUserId(center.getId(), teacherUser.getId()).orElseThrow().getStatus());
+        assertTrue(refreshTokens.findByToken(refreshToken).isEmpty());
+
+        mvc.perform(get("/api/v1/teacher-portal/me")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .header("X-Center-Id", center.getId()))
+                .andExpect(status().isUnauthorized());
     }
 
     private User activeUser(String email) {
