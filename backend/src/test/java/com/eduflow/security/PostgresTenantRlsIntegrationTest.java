@@ -38,9 +38,10 @@ class PostgresTenantRlsIntegrationTest {
   admin.execute("ALTER DEFAULT PRIVILEGES FOR ROLE edupilot_migrator IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO edupilot_app");
   Flyway.configure().dataSource(postgres.getJdbcUrl(),"edupilot_migrator","migration-password")
    .locations("classpath:db/migration").load().migrate();
-  admin.update("INSERT INTO centers(id,name,slug,status) VALUES (101,'Center One','center-one','ACTIVE'),(202,'Center Two','center-two','ACTIVE')");
-  admin.update("INSERT INTO students(center_id,student_number,first_name,last_name) VALUES (101,'S-101','One','Student'),(202,'S-202','Two','Student')");
   admin.update("INSERT INTO users(id,email,password_hash,first_name,last_name) VALUES (601,'parent-one@example.test','not-a-real-hash','Parent','One'),(602,'parent-two@example.test','not-a-real-hash','Parent','Two'),(603,'student-one@example.test','not-a-real-hash','Student','One'),(604,'student-two@example.test','not-a-real-hash','Student','Two'),(605,'teacher-one@example.test','not-a-real-hash','Teacher','One'),(606,'teacher-two@example.test','not-a-real-hash','Teacher','Two'),(607,'wrong-role@example.test','not-a-real-hash','Wrong','Role'),(608,'new-member@example.test','not-a-real-hash','New','Member')");
+
+  admin.update("INSERT INTO centers(id,name,slug,status,created_by_user_id) VALUES (101,'Center One','center-one','ACTIVE',601),(202,'Center Two','center-two','ACTIVE',602)");
+  admin.update("INSERT INTO students(center_id,student_number,first_name,last_name) VALUES (101,'S-101','One','Student'),(202,'S-202','Two','Student')");
   admin.update("INSERT INTO center_memberships(center_id,user_id,role) VALUES (101,601,'PARENT'),(202,602,'PARENT'),(101,603,'STUDENT'),(202,604,'STUDENT'),(101,605,'TEACHER'),(202,606,'TEACHER'),(101,607,'PARENT')");
   admin.update("UPDATE students SET user_id=603 WHERE center_id=101 AND student_number='S-101'");
   admin.update("UPDATE students SET user_id=604 WHERE center_id=202 AND student_number='S-202'");
