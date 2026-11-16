@@ -40,7 +40,12 @@ public final class StudentDtos {
     ) {
     }
 
-    public record StudentCredentialResetResponse(Long studentId, String login, String temporaryPassword, boolean mustChangePassword) {\n    }\n\n    public record StudentSelfResponse(Long id, String studentNumber, String firstName, String lastName,
+    public record StudentCredentialResetResponse(
+            Long studentId, String login, String temporaryPassword, boolean mustChangePassword
+    ) {
+    }
+
+    public record StudentSelfResponse(Long id, String studentNumber, String firstName, String lastName,
             String groupName, String teacherName) {
     }
 
@@ -55,7 +60,8 @@ public final class StudentDtos {
             String status,
             long version,
             Instant createdAt,
-            Instant updatedAt
+            Instant updatedAt,
+            boolean hasLogin
     ) {
     }
 }
