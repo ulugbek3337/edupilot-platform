@@ -53,7 +53,7 @@ public final class AuthDtos {
             boolean mustChangePassword) {
     }
 
-    public record UserSummary(Long id, String email, String firstName, String lastName, String preferredLanguage) {
+    public record UserSummary(Long id, String email, String firstName, String lastName, String preferredLanguage, boolean mustChangePassword) {
     }
 
     public record CenterSummary(Long id, String name, String slug, String status) {
