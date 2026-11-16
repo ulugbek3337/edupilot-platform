@@ -8,6 +8,8 @@ import com.eduflow.entity.StudentStatus;
 import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.CenterRepository;
 import com.eduflow.repository.RefreshTokenRepository;
+import com.eduflow.repository.GroupEnrollmentRepository;
+import com.eduflow.repository.ParentStudentLinkRepository;
 import com.eduflow.repository.StudentRepository;
 import com.eduflow.security.TenantRlsContext;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,8 @@ public class StudentService {
     private final StudentRepository studentRepository;
     private final CenterRepository centerRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final GroupEnrollmentRepository groupEnrollments;
+    private final ParentStudentLinkRepository parentLinks;
     private final TenantRlsContext tenantRlsContext;
 
     @Transactional(readOnly = true)
@@ -78,6 +82,10 @@ public class StudentService {
     public void deactivate(Long centerId, Long studentId) {
         Student student = get(centerId, studentId);
         student.setStatus(StudentStatus.INACTIVE);
+        groupEnrollments.findAllByCenter_IdAndStudent_IdAndActiveTrue(centerId, studentId)
+                .forEach(enrollment -> enrollment.setActive(false));
+        parentLinks.findAllByCenter_IdAndStudent_IdAndActiveTrue(centerId, studentId)
+                .forEach(link -> link.setActive(false));
 
         // Deactivation must also disable the provisioned login immediately.
         // JwtAuthenticationFilter reloads UserDetails on every request, so this
