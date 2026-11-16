@@ -7,6 +7,7 @@ import com.eduflow.security.AuthenticatedUser;
 import com.eduflow.security.CenterMembershipService;
 import com.eduflow.security.CurrentCenterContext;
 import com.eduflow.service.TeacherPortalService;
+import com.eduflow.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class TeacherAccountController {
     private final TeacherPortalService portal;
     private final CenterMembershipService memberships;
+    private final AuditLogService audit;
 
     @PostMapping("/{teacherId}/account")
     public ResponseEntity<AccountCredentials> createAccount(@AuthenticationPrincipal AuthenticatedUser user,
@@ -28,7 +30,9 @@ public class TeacherAccountController {
         Long centerId = CurrentCenterContext.get();
         if (centerId == null) throw new com.eduflow.exception.EduFlowException(HttpStatus.BAD_REQUEST, "tenant.context.required");
         memberships.assertRoleForUserId(user.id(), centerId, Role.CENTER_ADMIN);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(portal.createAccount(centerId, teacherId, request.email()));
+        AccountCredentials credentials = portal.createAccount(centerId, teacherId, request.email());
+        audit.record(centerId, user.id(), "TEACHER_ACCOUNT_CREATED", "Teacher", teacherId,
+                "Teacher account created for " + credentials.email());
+        return ResponseEntity.status(HttpStatus.CREATED).body(credentials);
     }
 }
