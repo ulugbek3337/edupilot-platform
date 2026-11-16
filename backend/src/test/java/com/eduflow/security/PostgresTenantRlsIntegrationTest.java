@@ -40,6 +40,7 @@ class PostgresTenantRlsIntegrationTest {
   admin.update("INSERT INTO teachers(id,center_id,teacher_code,first_name,last_name) VALUES (301,101,'T-101','One','Teacher'),(302,202,'T-202','Two','Teacher')");
   admin.update("INSERT INTO courses(id,center_id,course_code,name) VALUES (401,101,'C-101','One Course'),(402,202,'C-202','Two Course')");
   admin.update("INSERT INTO study_groups(id,center_id,course_id,teacher_id,group_code,name) VALUES (501,101,401,301,'G-101','One Group'),(502,202,402,302,'G-202','Two Group')");
+  admin.update("INSERT INTO lessons(id,center_id,group_id,title,starts_at,ends_at) VALUES (701,101,501,'One Lesson','2026-01-01 10:00:00','2026-01-01 11:00:00'),(702,202,502,'Two Lesson','2026-01-01 10:00:00','2026-01-01 11:00:00')");
   admin.update("INSERT INTO group_enrollments(center_id,group_id,student_id) VALUES (101,501,1),(202,502,2)");
   DataSource appDs=dataSource("edupilot_app","app-password");
   app=new JdbcTemplate(appDs);
@@ -135,6 +136,48 @@ class PostgresTenantRlsIntegrationTest {
   assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
    app.update("INSERT INTO group_enrollments(center_id,group_id,student_id,active) VALUES (101,501,2,TRUE)");
+   return null;
+  }));
+ }
+ @Test void groupCannotReferenceCourseFromAnotherCenter() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO study_groups(center_id,course_id,teacher_id,group_code,name) VALUES (101,402,301,'G-BAD-COURSE','Invalid')");
+   return null;
+  }));
+ }
+ @Test void groupCannotReferenceTeacherFromAnotherCenter() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO study_groups(center_id,course_id,teacher_id,group_code,name) VALUES (101,401,302,'G-BAD-TEACHER','Invalid')");
+   return null;
+  }));
+ }
+ @Test void lessonCannotReferenceGroupFromAnotherCenter() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO lessons(center_id,group_id,title,starts_at,ends_at) VALUES (101,502,'Invalid Lesson','2026-01-02 10:00:00','2026-01-02 11:00:00')");
+   return null;
+  }));
+ }
+ @Test void attendanceCannotReferenceStudentFromAnotherCenter() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO attendance_records(center_id,lesson_id,student_id,status) VALUES (101,701,2,'PRESENT')");
+   return null;
+  }));
+ }
+ @Test void gradeCannotReferenceStudentFromAnotherCenter() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO grade_records(center_id,student_id,group_id,title,score,max_score) VALUES (101,2,501,'Invalid',8,10)");
+   return null;
+  }));
+ }
+ @Test void gradeCannotReferenceGroupFromAnotherCenter() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO grade_records(center_id,student_id,group_id,title,score,max_score) VALUES (101,1,502,'Invalid',8,10)");
    return null;
   }));
  }
