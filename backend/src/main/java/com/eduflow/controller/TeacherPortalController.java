@@ -8,7 +8,6 @@ import com.eduflow.security.AuthenticatedUser;
 import com.eduflow.security.CenterMembershipService;
 import com.eduflow.security.CurrentCenterContext;
 import com.eduflow.service.TeacherPortalService;
-import com.eduflow.service.AuditLogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,7 +24,6 @@ import java.util.List;
 public class TeacherPortalController {
     private final TeacherPortalService portal;
     private final CenterMembershipService memberships;
-    private final AuditLogService audit;
 
     private Long center(AuthenticatedUser user) {
         Long centerId = CurrentCenterContext.get();
@@ -64,8 +62,6 @@ public class TeacherPortalController {
             @Valid @RequestBody AttendanceRequest request) {
         Long centerId = center(user);
         portal.markAttendance(centerId, user.id(), request);
-        audit.record(centerId, user.id(), "TEACHER_ATTENDANCE_MARKED", "Lesson",
-                request.lessonId(), "Student " + request.studentId());
         return org.springframework.http.ResponseEntity.noContent().build();
     }
 
@@ -74,8 +70,6 @@ public class TeacherPortalController {
             @Valid @RequestBody GradeRequest request) {
         Long centerId = center(user);
         portal.addGrade(centerId, user.id(), request);
-        audit.record(centerId, user.id(), "TEACHER_GRADE_CREATED", "StudyGroup",
-                request.groupId(), "Student " + request.studentId() + "; " + request.title());
         return org.springframework.http.ResponseEntity.noContent().build();
     }
 }
