@@ -52,6 +52,7 @@ class TeacherPortalIntegrationTest {
     @Autowired private AttendanceRepository attendance;
     @Autowired private JwtService jwt;
     @Autowired private RefreshTokenRepository refreshTokens;
+    @Autowired private AuditLogRepository auditLogs;
 
     @Test
     @Transactional
@@ -196,6 +197,11 @@ class TeacherPortalIntegrationTest {
                                 {"studentId":%d,"groupId":%d,"title":"Unauthorized grade","score":90,"maxScore":100}
                                 """.formatted(otherStudent.getId(), otherGroup.getId())))
                 .andExpect(status().isNotFound());
+
+        var auditActions = auditLogs.findTop200ByCenter_IdOrderByCreatedAtDesc(center.getId()).stream()
+                .map(AuditLog::getAction).toList();
+        assertTrue(auditActions.contains("TEACHER_ATTENDANCE_MARKED"));
+        assertTrue(auditActions.contains("TEACHER_GRADE_CREATED"));
     }
 
 
