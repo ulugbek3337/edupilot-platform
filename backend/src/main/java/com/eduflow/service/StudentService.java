@@ -100,6 +100,7 @@ public class StudentService {
         if (centerId == null) {
             throw new EduFlowException(HttpStatus.BAD_REQUEST, "tenant.context.required");
         }
+        tenantRlsContext.apply(centerId);
         Center center = centerRepository.findById(centerId)
                 .orElseThrow(() -> new EduFlowException(HttpStatus.NOT_FOUND, "center.not-found"));
         if (center.getStatus() != CenterStatus.ACTIVE) {
