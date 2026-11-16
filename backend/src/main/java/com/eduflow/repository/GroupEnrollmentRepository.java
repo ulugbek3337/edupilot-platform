@@ -4,4 +4,5 @@ public interface GroupEnrollmentRepository extends JpaRepository<GroupEnrollment
  Optional<GroupEnrollment> findFirstByCenter_IdAndStudent_IdAndActiveTrue(Long centerId,Long studentId);
  boolean existsByCenter_IdAndGroup_IdAndStudent_IdAndActiveTrue(Long centerId,Long groupId,Long studentId);
  List<GroupEnrollment> findAllByCenter_IdAndGroup_IdAndActiveTrueOrderByStudent_LastNameAsc(Long centerId,Long groupId);
+ List<GroupEnrollment> findAllByCenter_IdAndStudent_IdAndActiveTrue(Long centerId,Long studentId);
 }
