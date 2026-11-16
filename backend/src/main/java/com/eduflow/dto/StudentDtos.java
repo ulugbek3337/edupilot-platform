@@ -40,7 +40,7 @@ public final class StudentDtos {
     ) {
     }
 
-    public record StudentSelfResponse(Long id, String studentNumber, String firstName, String lastName,
+    public record StudentCredentialResetResponse(Long studentId, String login, String temporaryPassword, boolean mustChangePassword) {\n    }\n\n    public record StudentSelfResponse(Long id, String studentNumber, String firstName, String lastName,
             String groupName, String teacherName) {
     }
 
