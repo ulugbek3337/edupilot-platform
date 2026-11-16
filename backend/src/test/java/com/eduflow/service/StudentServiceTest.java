@@ -100,6 +100,7 @@ class StudentServiceTest {
 
         assertEquals(StudentStatus.INACTIVE, student.getStatus());
         assertFalse(user.isEnabled());
+        verify(tenantRlsContext).applyUser(700L);
         verify(refreshTokenRepository).deleteByUserId(700L);
         verify(groupEnrollments).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L);
         verify(parentLinks).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L);
