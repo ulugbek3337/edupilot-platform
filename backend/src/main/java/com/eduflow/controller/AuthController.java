@@ -3,6 +3,7 @@ package com.eduflow.controller;
 import com.eduflow.dto.AuthDtos.AuthResponse;
 import com.eduflow.dto.AuthDtos.LoginRequest;
 import com.eduflow.dto.AuthDtos.LanguageUpdateRequest;
+import com.eduflow.dto.AuthDtos.ChangePasswordRequest;
 import com.eduflow.dto.AuthDtos.RefreshRequest;
 import com.eduflow.dto.AuthDtos.RegisterRequest;
 import com.eduflow.dto.AuthDtos.UserSummary;
@@ -41,6 +42,14 @@ public class AuthController {
     public ResponseEntity<UserSummary> me(@AuthenticationPrincipal AuthenticatedUser principal) {
         User user = authService.getCurrentUser(principal.getUsername());
         return ResponseEntity.ok(toUserSummary(user));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(principal.getUsername(), request);
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/me/language")
