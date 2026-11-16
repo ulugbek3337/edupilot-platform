@@ -313,16 +313,18 @@ class PostgresTenantRlsIntegrationTest {
  }
 
  @Test void runtimeRoleCannotUpdateOrDeleteCenterMetadata() {
-  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+  Integer updated=appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
-   app.update("UPDATE centers SET name='Tampered' WHERE id=101");
-   return null;
-  }));
-  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   return app.update("UPDATE centers SET name='Tampered' WHERE id=101");
+  });
+  Integer deleted=appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
-   app.update("DELETE FROM centers WHERE id=101");
-   return null;
-  }));
+   return app.update("DELETE FROM centers WHERE id=101");
+  });
+  assertEquals(0,updated);
+  assertEquals(0,deleted);
+  String actualName=admin.queryForObject("SELECT name FROM centers WHERE id=101",String.class);
+  assertEquals("Center One",actualName);
  }
 
  @Test void globalUserRowsAreHiddenWithoutAnIdentityOrTenantContext() {
