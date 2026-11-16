@@ -18,8 +18,8 @@ EduPilot is a multi-tenant LMS platform built as a modular monolith.
 ## Quick start
 1. Copy `.env.example` to `.env` and replace every placeholder with unique secrets.
 2. Start fresh local infrastructure: `docker compose up -d`.
-3. On a fresh PostgreSQL volume, the init script creates a restricted `DB_USERNAME` role. The bootstrap `POSTGRES_ADMIN_USER` is not used by the application.
-4. Run the backend with the same `DB_USERNAME`, `DB_PASSWORD`, `REDIS_PASSWORD`, and `JWT_SECRET` values.
+3. On a fresh PostgreSQL volume, the init script creates separate runtime (`DB_USERNAME`) and migration (`DB_MIGRATION_USERNAME`) roles. The bootstrap `POSTGRES_ADMIN_USER` is not used by the application.
+4. Run the backend with `DB_USERNAME`, `DB_PASSWORD`, `DB_MIGRATION_USERNAME`, `DB_MIGRATION_PASSWORD`, `REDIS_PASSWORD`, and `JWT_SECRET` configured.
 5. Run the frontend: `cd frontend && npm ci && npm run dev`.
 
 Existing PostgreSQL volumes do not rerun Docker initialization scripts. Create the restricted application role manually as described in [operations documentation](docs/operations.md); do not delete volumes to re-run initialization unless the data is disposable and backed up.
@@ -27,10 +27,10 @@ Existing PostgreSQL volumes do not rerun Docker initialization scripts. Create t
 ## Implemented platform foundations
 - JWT authentication, refresh-token rotation, and center membership authorization
 - Multi-tenant Student, Teacher, Course, Group, Lesson, Attendance, and Grade APIs
-- PostgreSQL RLS for tenant business tables (V6 migration)
+- PostgreSQL RLS for academic tenant data, center memberships, global user identities, center metadata, and user-owned refresh tokens (V6–V10, V18–V20 migrations)
 - Redis-backed rate limiting for authentication endpoints
 - Uzbek and Russian interface translations
-- Docker Compose infrastructure with separate PostgreSQL bootstrap and application roles
+- Docker Compose infrastructure with a bootstrap role, a deployment-only migration owner (`BYPASSRLS`, non-superuser), and a restricted runtime role (`NOBYPASSRLS`, no table ownership)
 - Backup/restore scripts and k6 staging load test
 
 ## Deferred

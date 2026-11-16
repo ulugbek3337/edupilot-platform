@@ -4,4 +4,5 @@ public interface AttendanceRepository extends JpaRepository<AttendanceRecord,Lon
  List<AttendanceRecord> findAllByCenter_IdAndLesson_IdOrderByStudent_LastNameAsc(Long centerId,Long lessonId);
  List<AttendanceRecord> findAllByCenter_IdAndStudent_IdOrderByCreatedAtDesc(Long centerId,Long studentId);
  Optional<AttendanceRecord> findByIdAndCenter_Id(Long id,Long centerId);
+ Optional<AttendanceRecord> findByCenter_IdAndLesson_IdAndStudent_Id(Long centerId,Long lessonId,Long studentId);
 }

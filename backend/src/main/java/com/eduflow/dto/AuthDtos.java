@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 
 public final class AuthDtos {
 
@@ -53,7 +54,17 @@ public final class AuthDtos {
             boolean mustChangePassword) {
     }
 
-    public record UserSummary(Long id, String email, String firstName, String lastName, String preferredLanguage, boolean mustChangePassword) {
+    public record CenterRole(Long centerId, String role) {
+    }
+
+    public record UserSummary(
+            Long id,
+            String email,
+            String firstName,
+            String lastName,
+            String preferredLanguage,
+            boolean mustChangePassword,
+            List<CenterRole> memberships) {
     }
 
     public record CenterSummary(Long id, String name, String slug, String status) {

@@ -105,6 +105,10 @@ class StudentAdmissionIntegrationTest {
                 .andExpect(jsonPath("$.mustChangePassword").value(true))
                 .andReturn().getResponse().getContentAsString();
         String studentToken = mapper.readTree(loginResponse).get("accessToken").asText();
+        mvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberships[0].role").value("STUDENT"));
         mvc.perform(get("/api/v1/student-portal/me")
                         .header("Authorization", "Bearer " + studentToken)
                         .header("X-Center-Id", center.getId()))

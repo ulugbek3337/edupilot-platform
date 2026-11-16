@@ -94,7 +94,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private boolean isAllowedBeforePasswordChange(HttpServletRequest request) {
         String path = request.getRequestURI();
         String method = request.getMethod();
-        return ("GET".equals(method) && ("/api/v1/auth/me".equals(path) || "/api/v1/centers".equals(path)))
+        return ("GET".equals(method) && ("/api/v1/auth/me".equals(path) || "/api/v1/centers".equals(path)
+               ))
                 || ("POST".equals(method) && ("/api/v1/auth/change-password".equals(path)
                 || "/api/v1/auth/refresh".equals(path)));
     }

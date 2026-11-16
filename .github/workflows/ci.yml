@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "feature/**"]
   pull_request:
-    branches: [main, "security/**", "enterprise/**", "ui/**", "feature/**"]
+    branches: [main, "security/**", "enterprise/**", "feature/**", "ui/**"]
   workflow_dispatch:
 
 permissions:
@@ -36,6 +36,8 @@ jobs:
       - name: Run Maven tests
         env:
           DB_PASSWORD: ci-only-not-a-production-secret
+          DB_MIGRATION_USERNAME: edupilot_migrator
+          DB_MIGRATION_PASSWORD: ci-only-migration-secret
           JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
         run: mvn --batch-mode --no-transfer-progress test
 
@@ -128,7 +130,35 @@ jobs:
           DB_NAME: edupilot_ci
           DB_USERNAME: edupilot_app
           DB_PASSWORD: ci-only-database-password
+          DB_MIGRATION_USERNAME: edupilot_migrator
+          DB_MIGRATION_PASSWORD: ci-only-migration-password
           POSTGRES_ADMIN_USER: edupilot_admin
           POSTGRES_ADMIN_PASSWORD: ci-only-admin-password
           REDIS_PASSWORD: ci-only-redis-password
         run: docker compose config --quiet
+
+      - name: Validate k6 load test against local mock API
+        run: |
+          python3 load-tests/mock_server.py >"$RUNNER_TEMP/k6-mock.log" 2>&1 &
+          mock_pid=$!
+          trap 'kill "$mock_pid" 2>/dev/null || true' EXIT
+          python3 - <<'PY'
+          import time
+          import urllib.request
+          for attempt in range(30):
+              try:
+                  urllib.request.urlopen("http://127.0.0.1:8088/health", timeout=1).read()
+                  break
+              except Exception:
+                  if attempt == 29:
+                      raise
+                  time.sleep(1)
+          PY
+          docker run --rm --network host \
+            -e BASE_URL=http://127.0.0.1:8088 \
+            -e ACCESS_TOKEN=ci-load-test-token \
+            -e CENTER_ID=101 \
+            -e OTHER_CENTER_ID=202 \
+            -e LOAD_PROFILE=smoke \
+            -v "$PWD:/work:ro" -w /work \
+            grafana/k6:0.54.0 run load-tests/k6-academic.js

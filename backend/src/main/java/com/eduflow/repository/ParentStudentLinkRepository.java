@@ -4,6 +4,7 @@ public interface ParentStudentLinkRepository extends JpaRepository<ParentStudent
  List<ParentStudentLink> findAllByCenter_IdAndParent_IdAndActiveTrueOrderByStudent_LastNameAsc(Long centerId,Long parentId);
  List<ParentStudentLink> findAllByCenter_IdAndActiveTrueOrderByCreatedAtDesc(Long centerId);
  Optional<ParentStudentLink> findByCenter_IdAndParent_IdAndStudent_IdAndActiveTrue(Long centerId,Long parentId,Long studentId);
+ Optional<ParentStudentLink> findByCenter_IdAndParent_IdAndStudent_Id(Long centerId,Long parentId,Long studentId);
  boolean existsByCenter_IdAndParent_IdAndStudent_IdAndActiveTrue(Long centerId,Long parentId,Long studentId);
  List<ParentStudentLink> findAllByCenter_IdAndStudent_IdAndActiveTrue(Long centerId,Long studentId);
 }

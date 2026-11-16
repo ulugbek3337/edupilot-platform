@@ -45,6 +45,7 @@ public class StudentCredentialService {
         user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
         user.setMustChangePassword(true);
         users.save(user);
+        tenantRlsContext.applyUser(user.getId());
         refreshTokens.deleteByUserId(user.getId());
 
         return new StudentCredentialResetResponse(student.getId(), user.getEmail(), temporaryPassword, true);

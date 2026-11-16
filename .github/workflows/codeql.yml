@@ -2,9 +2,9 @@ name: CodeQL security analysis
 
 on:
   push:
-    branches: [main]
+    branches: [main, "feature/**"]
   pull_request:
-    branches: [main, "enterprise/**", "security/**", "ui/**", "feature/**"]
+    branches: [main, "enterprise/**", "security/**", "feature/**", "ui/**"]
   schedule:
     - cron: "23 4 * * 1"
 
@@ -34,8 +34,26 @@ jobs:
         with:
           languages: ${{ matrix.language }}
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      - name: Set up Java 21 for backend analysis
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Build backend for CodeQL
+        if: matrix.language == 'java-kotlin'
+        working-directory: backend
+        run: mvn --batch-mode --no-transfer-progress -DskipTests package
+
+      - name: Build frontend for CodeQL
+        if: matrix.language == 'javascript-typescript'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3

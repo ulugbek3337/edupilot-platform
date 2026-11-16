@@ -5,10 +5,14 @@ import com.eduflow.entity.Center;
 import com.eduflow.entity.CenterStatus;
 import com.eduflow.entity.Student;
 import com.eduflow.entity.StudentStatus;
+import com.eduflow.entity.GroupEnrollment;
+import com.eduflow.entity.ParentStudentLink;
 import com.eduflow.entity.User;
 import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.CenterRepository;
 import com.eduflow.repository.RefreshTokenRepository;
+import com.eduflow.repository.GroupEnrollmentRepository;
+import com.eduflow.repository.ParentStudentLinkRepository;
 import com.eduflow.repository.StudentRepository;
 import com.eduflow.security.TenantRlsContext;
 import org.junit.jupiter.api.Test;
@@ -19,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -34,6 +39,12 @@ class StudentServiceTest {
 
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
+
+    @Mock
+    private GroupEnrollmentRepository groupEnrollments;
+
+    @Mock
+    private ParentStudentLinkRepository parentLinks;
 
     @Mock
     private TenantRlsContext tenantRlsContext;
@@ -80,12 +91,21 @@ class StudentServiceTest {
 
         when(centerRepository.findById(10L)).thenReturn(Optional.of(center));
         when(studentRepository.findByIdAndCenter_Id(1L, 10L)).thenReturn(Optional.of(student));
+        GroupEnrollment enrollment = mock(GroupEnrollment.class);
+        ParentStudentLink parentLink = mock(ParentStudentLink.class);
+        when(groupEnrollments.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L)).thenReturn(List.of(enrollment));
+        when(parentLinks.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L)).thenReturn(List.of(parentLink));
 
         studentService.deactivate(10L, 1L);
 
         assertEquals(StudentStatus.INACTIVE, student.getStatus());
         assertFalse(user.isEnabled());
+        verify(tenantRlsContext).applyUser(700L);
         verify(refreshTokenRepository).deleteByUserId(700L);
+        verify(groupEnrollments).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L);
+        verify(parentLinks).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L);
+        verify(enrollment).setActive(false);
+        verify(parentLink).setActive(false);
     }
 
     @Test
@@ -94,11 +114,15 @@ class StudentServiceTest {
         Student student = new Student(center, "S-002", "Sara", "Aliyeva", null, null, null);
         when(centerRepository.findById(10L)).thenReturn(Optional.of(center));
         when(studentRepository.findByIdAndCenter_Id(2L, 10L)).thenReturn(Optional.of(student));
+        when(groupEnrollments.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 2L)).thenReturn(List.of());
+        when(parentLinks.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 2L)).thenReturn(List.of());
 
         studentService.deactivate(10L, 2L);
 
         assertEquals(StudentStatus.INACTIVE, student.getStatus());
         verifyNoInteractions(refreshTokenRepository);
+        verify(groupEnrollments).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 2L);
+        verify(parentLinks).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 2L);
     }
 
     @Test

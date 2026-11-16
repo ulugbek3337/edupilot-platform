@@ -32,6 +32,10 @@ public class Center {
     @Column(nullable = false)
     private CenterStatus status = CenterStatus.PENDING;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_user_id")
+    private User createdBy;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -44,8 +48,13 @@ public class Center {
     private Set<CenterMembership> memberships = new HashSet<>();
 
     public Center(String name, String slug, CenterStatus status) {
+        this(name, slug, status, null);
+    }
+
+    public Center(String name, String slug, CenterStatus status, User createdBy) {
         this.name = name;
         this.slug = slug;
         this.status = status;
+        this.createdBy = createdBy;
     }
 }

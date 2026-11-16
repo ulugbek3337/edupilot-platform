@@ -15,6 +15,7 @@ import com.eduflow.repository.RefreshTokenRepository;
 import com.eduflow.repository.UserRepository;
 import com.eduflow.security.CurrentCenterContext;
 import com.eduflow.security.JwtService;
+import com.eduflow.security.TenantRlsContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +25,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.Optional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
@@ -36,9 +41,11 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final TenantRlsContext tenantRlsContext;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        tenantRlsContext.applyUserEmail(request.email());
         if (userRepository.existsByEmail(request.email())) {
             throw new EduFlowException(409, "auth.email.already-registered");
         }
@@ -60,6 +67,7 @@ public class AuthService {
             throw new EduFlowException(HttpStatus.UNAUTHORIZED, "auth.invalid-credentials");
         }
 
+        tenantRlsContext.applyUserEmail(request.email());
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new EduFlowException(401, "auth.invalid-credentials"));
 
@@ -74,10 +82,30 @@ public class AuthService {
             throw new EduFlowException(401, "auth.refresh.invalid");
         }
 
+        // The verified token carries the identity required by refresh-token RLS.
+        // Establish the user scope before looking up the persisted row.
+        Long tokenUserId = jwtService.extractUserId(token);
+        if (tokenUserId == null) {
+            throw new EduFlowException(401, "auth.refresh.invalid");
+        }
+        tenantRlsContext.applyUser(tokenUserId);
+
         // Lock the persisted token row so two simultaneous refresh requests
         // cannot both rotate the same refresh token successfully.
-        RefreshToken refreshToken = refreshTokenRepository.findByTokenForUpdate(token)
+        // New rows store SHA-256 digests. The raw-token fallback is temporary
+        // compatibility for sessions created before this security upgrade.
+        String tokenHash = hashRefreshToken(token);
+        Optional<RefreshToken> persistedToken = refreshTokenRepository.findByTokenForUpdate(tokenHash);
+        boolean legacyRawToken = persistedToken.isEmpty();
+        if (legacyRawToken) {
+            persistedToken = refreshTokenRepository.findByTokenForUpdate(token);
+        }
+        RefreshToken refreshToken = persistedToken
                 .orElseThrow(() -> new EduFlowException(401, "auth.refresh.invalid"));
+        if (legacyRawToken) {
+            // Upgrade legacy rows in place so the raw token is not retained after use.
+            refreshToken.setToken(tokenHash);
+        }
 
         Instant now = Instant.now();
         if (refreshToken.isRevoked()
@@ -87,7 +115,6 @@ public class AuthService {
         }
 
         User user = refreshToken.getUser();
-        Long tokenUserId = jwtService.extractUserId(token);
         String tokenSubject = jwtService.extractUsername(token);
 
         if (user == null
@@ -107,7 +134,9 @@ public class AuthService {
         return buildAuthResponse(user, CurrentCenterContext.get());
     }
 
+    @Transactional(readOnly = true)
     public User getCurrentUser(String email) {
+        tenantRlsContext.applyUserEmail(email);
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new EduFlowException(404, "user.not-found"));
     }
@@ -124,6 +153,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);
         User saved = userRepository.save(user);
+        tenantRlsContext.applyUser(user.getId());
         refreshTokenRepository.deleteByUserId(user.getId());
         return saved;
     }
@@ -138,12 +168,23 @@ public class AuthService {
         return userRepository.save(user);
     }
 
+    static String hashRefreshToken(String token) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
+    }
+
     private AuthResponse buildAuthResponse(User user, Long centerId) {
+        tenantRlsContext.applyUser(user.getId());
         String accessToken = jwtService.generateToken(user, centerId);
         String refreshTokenValue = jwtService.generateRefreshToken(user);
 
         RefreshToken refreshToken = new RefreshToken(
-                refreshTokenValue,
+                hashRefreshToken(refreshTokenValue),
                 user,
                 Instant.now().plus(7, ChronoUnit.DAYS)
         );

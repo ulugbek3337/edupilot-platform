@@ -5,12 +5,14 @@ import com.eduflow.entity.CenterStatus;
 import com.eduflow.entity.MembershipStatus;
 import com.eduflow.entity.Role;
 import com.eduflow.entity.User;
+import com.eduflow.entity.UserStatus;
 import com.eduflow.repository.CenterMembershipRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -18,6 +20,7 @@ import java.util.Optional;
 public class CenterMembershipService {
 
     private final CenterMembershipRepository centerMembershipRepository;
+    private final TenantRlsContext tenantRlsContext;
 
     @Transactional(readOnly = true)
     public boolean isMember(User user, Long centerId) {
@@ -60,13 +63,26 @@ public class CenterMembershipService {
         throw new AccessDeniedException("User does not have required role for this action.");
     }
 
+    @Transactional(readOnly = true)
+    public List<CenterMembership> findActiveMembershipsForUser(Long userId) {
+        if (userId == null) {
+            return List.of();
+        }
+        tenantRlsContext.applyUser(userId);
+        return centerMembershipRepository.findAllByUser_IdAndStatusAndCenter_Status(
+                userId, MembershipStatus.ACTIVE, CenterStatus.ACTIVE);
+    }
+
     private Optional<CenterMembership> findActiveMembership(Long userId, Long centerId) {
         if (userId == null || centerId == null) {
             return Optional.empty();
         }
 
+        tenantRlsContext.applyUser(userId);
         return centerMembershipRepository.findByCenterIdAndUserId(centerId, userId)
                 .filter(membership -> membership.getStatus() == MembershipStatus.ACTIVE)
+                .filter(membership -> membership.getUser() != null && membership.getUser().isEnabled())
+                .filter(membership -> membership.getUser().getStatus() == UserStatus.ACTIVE)
                 .filter(membership -> membership.getCenter() != null)
                 .filter(membership -> membership.getCenter().getStatus() == CenterStatus.ACTIVE);
     }

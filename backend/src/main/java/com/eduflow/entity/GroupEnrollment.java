@@ -1,6 +1,6 @@
 package com.eduflow.entity;
 import jakarta.persistence.*; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter; import org.hibernate.annotations.CreationTimestamp; import java.time.Instant;
-@Entity @Table(name="group_enrollments",uniqueConstraints=@UniqueConstraint(name="uk_group_enrollment",columnNames={"group_id","student_id"}))
+@Entity @Table(name="group_enrollments")
 @Getter @Setter @NoArgsConstructor
 public class GroupEnrollment {
  @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;

@@ -11,7 +11,7 @@ public final class AcademicDtos {
  public record EnrollmentResponse(Long id,Long groupId,Long studentId,String studentNumber,String firstName,String lastName){}
  public record GradeRequest(@NotNull Long studentId,@NotNull Long groupId,@NotBlank @Size(max=180) String title,@NotNull @DecimalMin("0.00") BigDecimal score,@NotNull @DecimalMin("0.01") BigDecimal maxScore,@Size(max=1000) String comment){}
  public record ItemResponse(Long id,String code,String name,String status,Instant createdAt){}
- public record TeacherResponse(Long id,String teacherCode,String firstName,String lastName,String email,String phone,String specialization,String status,Instant createdAt){}
+ public record TeacherResponse(Long id,String teacherCode,String firstName,String lastName,String email,String phone,String specialization,String status,Instant createdAt,boolean hasAccount){}
  public record CourseResponse(Long id,String courseCode,String name,String description,String status,Instant createdAt){}
  public record GroupResponse(Long id,Long courseId,Long teacherId,String groupCode,String name,LocalDate startsOn,LocalDate endsOn,String status,Instant createdAt){}
  public record LessonResponse(Long id,Long groupId,String title,String description,LocalDateTime startsAt,LocalDateTime endsAt,String status){}

@@ -9,6 +9,7 @@ public class Teacher {
  @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
  @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="center_id",nullable=false,updatable=false) private Center center;
  @Column(name="teacher_code",nullable=false,length=50) private String teacherCode;
+ @OneToOne(fetch=FetchType.LAZY) @JoinColumn(name="user_id",unique=true) private User user;
  @Column(name="first_name",nullable=false,length=100) private String firstName;
  @Column(name="last_name",nullable=false,length=100) private String lastName;
  @Column(length=255) private String email; @Column(length=30) private String phone;

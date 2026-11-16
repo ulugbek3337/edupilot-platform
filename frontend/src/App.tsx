@@ -4,6 +4,7 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import AcademicWorkspace from './components/AcademicWorkspace';
 import ParentWorkspace from './components/ParentWorkspace';
 import StudentWorkspace from './components/StudentWorkspace';
+import TeacherWorkspace from './components/TeacherWorkspace';
 import NotificationBell from './components/NotificationBell';
 import { api, centerKey, tokenKey, type AuthResult, type Center } from './api';
 
@@ -83,8 +84,10 @@ export default function App() {
   const [error, setError] = useState('');
   const [isParent, setIsParent] = useState(false);
   const [isStudent, setIsStudent] = useState(false);
+  const [isTeacher, setIsTeacher] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [userMemberships, setUserMemberships] = useState<Array<{ centerId: number; role: string }>>([]);
 
   useEffect(() => {
     if (!token) {
@@ -92,15 +95,12 @@ export default function App() {
       return;
     }
     setAuthChecked(false);
-    api<{ mustChangePassword: boolean }>('/auth/me', { token })
+    api<{ mustChangePassword: boolean; memberships: Array<{ centerId: number; role: string }> }>('/auth/me', { token })
       .then(me => {
         setMustChangePassword(me.mustChangePassword);
-        if (me.mustChangePassword) {
-          setIsStudent(true);
-          setIsParent(false);
-        }
+        setUserMemberships(me.memberships ?? []);
       })
-      .catch(() => setMustChangePassword(false))
+      .catch(() => { setMustChangePassword(false); setUserMemberships([]); })
       .finally(() => setAuthChecked(true));
   }, [token]);
 
@@ -115,33 +115,20 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    if (!token || !centerId) {
-      setIsParent(false);
-      setIsStudent(false);
+    if (!token || !centerId || !authChecked) {
+      setIsParent(false); setIsStudent(false); setIsTeacher(false);
       return;
     }
-    if (mustChangePassword) {
-      setIsStudent(true);
-      setIsParent(false);
-      return;
-    }
-    api<unknown>('/student-portal/me', { token, centerId })
-      .then(() => {
-        setIsStudent(true);
-        setIsParent(false);
-      })
-      .catch(() => {
-        setIsStudent(false);
-        api<unknown[]>('/parents/children', { token, centerId })
-          .then(() => setIsParent(true))
-          .catch(() => setIsParent(false));
-      });
-  }, [token, centerId, mustChangePassword]);
+    const roles = userMemberships.filter(m => m.centerId === centerId).map(m => m.role);
+    setIsTeacher(roles.includes('TEACHER'));
+    setIsStudent(roles.includes('STUDENT'));
+    setIsParent(roles.includes('PARENT'));
+  }, [token, centerId, authChecked, userMemberships]);
 
   function login(result: AuthResult) {
     localStorage.setItem(tokenKey, result.accessToken);
     setMustChangePassword(result.mustChangePassword);
-    if (result.mustChangePassword) setIsStudent(true);
+    setIsParent(false); setIsStudent(false); setIsTeacher(false);
     setToken(result.accessToken);
   }
 
@@ -186,7 +173,7 @@ export default function App() {
           <a href="#workspace">{t('navigation.dashboard', 'Boshqaruv')}</a>
         </nav>
         <div className="header-actions">
-          {token && centerId > 0 && !isStudent && !mustChangePassword && <NotificationBell token={token} centerId={centerId} />}
+          {token && centerId > 0 && !isStudent && !isTeacher && !mustChangePassword && <NotificationBell token={token} centerId={centerId} />}
           <LanguageSwitcher />
           {token && <button className="secondary-button logout-button" onClick={logout}>{t('logout', { ns: 'auth' })}</button>}
         </div>
@@ -218,11 +205,13 @@ export default function App() {
                 <span>{centers.length} ta markaz</span>
               </div>
               {activeCenter && (
-                mustChangePassword || isStudent
-                  ? <StudentWorkspace token={token} centerId={centerId} forced={mustChangePassword} onPasswordChanged={() => setMustChangePassword(false)} />
-                  : isParent
-                    ? <ParentWorkspace token={token} centerId={centerId} />
-                    : <AcademicWorkspace token={token} center={activeCenter} />
+                isTeacher
+                  ? <TeacherWorkspace token={token} centerId={centerId} forced={mustChangePassword} onPasswordChanged={() => setMustChangePassword(false)} />
+                  : mustChangePassword || isStudent
+                    ? <StudentWorkspace token={token} centerId={centerId} forced={mustChangePassword} onPasswordChanged={() => setMustChangePassword(false)} />
+                    : isParent
+                      ? <ParentWorkspace token={token} centerId={centerId} />
+                      : <AcademicWorkspace token={token} center={activeCenter} />
               )}
             </>
           )}

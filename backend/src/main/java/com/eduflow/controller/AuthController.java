@@ -7,8 +7,10 @@ import com.eduflow.dto.AuthDtos.ChangePasswordRequest;
 import com.eduflow.dto.AuthDtos.RefreshRequest;
 import com.eduflow.dto.AuthDtos.RegisterRequest;
 import com.eduflow.dto.AuthDtos.UserSummary;
+import com.eduflow.dto.AuthDtos.CenterRole;
 import com.eduflow.entity.User;
 import com.eduflow.security.AuthenticatedUser;
+import com.eduflow.security.CenterMembershipService;
 import com.eduflow.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final CenterMembershipService memberships;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -61,13 +64,13 @@ public class AuthController {
     }
 
     private UserSummary toUserSummary(User user) {
+        var activeMemberships = memberships.findActiveMembershipsForUser(user.getId());
         return new UserSummary(
-                user.getId(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getLanguagePreference().getCode(),
-                user.isMustChangePassword()
+                user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(),
+                user.getLanguagePreference().getCode(), user.isMustChangePassword(),
+                activeMemberships.stream()
+                        .map(m -> new CenterRole(m.getCenter().getId(), m.getRole().name()))
+                        .toList()
         );
     }
 }

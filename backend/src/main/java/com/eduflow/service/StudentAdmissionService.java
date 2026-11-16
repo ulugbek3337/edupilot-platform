@@ -31,10 +31,10 @@ public class StudentAdmissionService {
 
     @Transactional
     public StudentAdmissionResponse admit(Long centerId, StudentAdmissionRequest request) {
+        tenantRlsContext.apply(centerId);
         Center center = centers.findById(centerId)
                 .filter(c -> c.getStatus() == CenterStatus.ACTIVE)
                 .orElseThrow(() -> new EduFlowException(HttpStatus.NOT_FOUND, "center.not-found"));
-        tenantRlsContext.apply(centerId);
 
         String number = request.studentNumber().trim();
         if (students.existsByCenter_IdAndStudentNumber(centerId, number)) {
@@ -48,6 +48,7 @@ public class StudentAdmissionService {
         student = students.save(student);
 
         String login = "student-" + centerId + "-" + student.getId() + "@students.edupilot.local";
+        tenantRlsContext.applyUserEmail(login);
         if (users.existsByEmail(login)) {
             throw new EduFlowException(HttpStatus.CONFLICT, "student.login.exists");
         }
@@ -58,9 +59,11 @@ public class StudentAdmissionService {
         user.setMustChangePassword(true);
         user = users.save(user);
 
+        // The tenant- and role-aware foreign key requires the membership to exist
+        // before the student account is attached to the student record.
+        memberships.save(new CenterMembership(center, user, Role.STUDENT));
         student.setUser(user);
         students.save(student);
-        memberships.save(new CenterMembership(center, user, Role.STUDENT));
         enrollments.save(new GroupEnrollment(center, group, student));
 
         String teacherName = group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName();
