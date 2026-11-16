@@ -48,11 +48,11 @@ public class StudentAdmissionService {
         student = students.save(student);
 
         String login = "student-" + centerId + "-" + student.getId() + "@students.edupilot.local";
+        tenantRlsContext.applyUserEmail(login);
         if (users.existsByEmail(login)) {
             throw new EduFlowException(HttpStatus.CONFLICT, "student.login.exists");
         }
         String temporaryPassword = generatePassword();
-        tenantRlsContext.applyUserEmail(login);
         User user = new User(login, passwordEncoder.encode(temporaryPassword),
                 student.getFirstName(), student.getLastName());
         user.setStudentAccount(true);
