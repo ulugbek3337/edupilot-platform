@@ -208,10 +208,10 @@ export default function App() {
                 <span>{centers.length} ta markaz</span>
               </div>
               {activeCenter && (
-                mustChangePassword || isStudent
-                  ? <StudentWorkspace token={token} centerId={centerId} forced={mustChangePassword} onPasswordChanged={() => setMustChangePassword(false)} />
-                  : isTeacher
-                    ? <TeacherWorkspace token={token} centerId={centerId} forced={mustChangePassword} onPasswordChanged={() => setMustChangePassword(false)} />
+                isTeacher
+                  ? <TeacherWorkspace token={token} centerId={centerId} forced={mustChangePassword} onPasswordChanged={() => setMustChangePassword(false)} />
+                  : mustChangePassword || isStudent
+                    ? <StudentWorkspace token={token} centerId={centerId} forced={mustChangePassword} onPasswordChanged={() => setMustChangePassword(false)} />
                     : isParent
                       ? <ParentWorkspace token={token} centerId={centerId} />
                       : <AcademicWorkspace token={token} center={activeCenter} />
