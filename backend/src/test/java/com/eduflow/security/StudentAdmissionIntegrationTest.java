@@ -137,6 +137,39 @@ class StudentAdmissionIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken)
                         .header("X-Center-Id", center.getId()))
                 .andExpect(status().isForbidden());
+
+        String resetResponse = mvc.perform(post("/api/v1/students/" + student.getId() + "/reset-credentials")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Center-Id", center.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mustChangePassword").value(true))
+                .andReturn().getResponse().getContentAsString();
+        String resetPassword = mapper.readTree(resetResponse).get("temporaryPassword").asText();
+        User resetUser = users.findById(studentUser.getId()).orElseThrow();
+        assertTrue(resetUser.isMustChangePassword());
+        assertTrue(passwordEncoder.matches(resetPassword, resetUser.getPasswordHash()));
+        assertFalse(resetPassword.equals(temporaryPassword));
+
+        mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"%s"}
+                                """.formatted(login, "NewSecureStudentPassword2026!")))
+                .andExpect(status().isUnauthorized());
+
+        String resetLogin = mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"%s"}
+                                """.formatted(login, resetPassword)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mustChangePassword").value(true))
+                .andReturn().getResponse().getContentAsString();
+        String resetAccessToken = mapper.readTree(resetLogin).get("accessToken").asText();
+        mvc.perform(get("/api/v1/student-portal/me")
+                        .header("Authorization", "Bearer " + resetAccessToken)
+                        .header("X-Center-Id", center.getId()))
+                .andExpect(status().isForbidden());
     }
 
     private User activeUser(String email) {
