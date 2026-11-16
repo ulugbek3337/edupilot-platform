@@ -45,6 +45,7 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        tenantRlsContext.applyUserEmail(request.email());
         if (userRepository.existsByEmail(request.email())) {
             throw new EduFlowException(409, "auth.email.already-registered");
         }
@@ -66,6 +67,7 @@ public class AuthService {
             throw new EduFlowException(HttpStatus.UNAUTHORIZED, "auth.invalid-credentials");
         }
 
+        tenantRlsContext.applyUserEmail(request.email());
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new EduFlowException(401, "auth.invalid-credentials"));
 
@@ -132,7 +134,9 @@ public class AuthService {
         return buildAuthResponse(user, CurrentCenterContext.get());
     }
 
+    @Transactional(readOnly = true)
     public User getCurrentUser(String email) {
+        tenantRlsContext.applyUserEmail(email);
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new EduFlowException(404, "user.not-found"));
     }
