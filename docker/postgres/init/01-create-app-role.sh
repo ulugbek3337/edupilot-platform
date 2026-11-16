@@ -6,6 +6,11 @@ set -eu
 : "${DB_MIGRATION_USERNAME:?DB_MIGRATION_USERNAME must be set}"
 : "${DB_MIGRATION_PASSWORD:?DB_MIGRATION_PASSWORD must be set}"
 
+if [ "$DB_USERNAME" = "$DB_MIGRATION_USERNAME" ] || [ "$DB_USERNAME" = "$POSTGRES_USER" ] || [ "$DB_MIGRATION_USERNAME" = "$POSTGRES_USER" ]; then
+  echo "Runtime, migration, and bootstrap PostgreSQL roles must be three distinct users." >&2
+  exit 1
+fi
+
 psql --set=ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
   --set=app_user="$DB_USERNAME" --set=app_password="$DB_PASSWORD" \
   --set=migration_user="$DB_MIGRATION_USERNAME" --set=migration_password="$DB_MIGRATION_PASSWORD" \
