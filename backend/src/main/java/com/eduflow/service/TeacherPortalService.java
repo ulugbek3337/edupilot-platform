@@ -37,9 +37,9 @@ public class TeacherPortalService {
 
     private Center center(Long id) {
         if (id == null) throw new EduFlowException(HttpStatus.BAD_REQUEST, "tenant.context.required");
+        tenantRlsContext.apply(id);
         Center center = centers.findById(id).orElseThrow(() -> new EduFlowException(HttpStatus.NOT_FOUND, "center.not-found"));
         if (center.getStatus() != CenterStatus.ACTIVE) throw new EduFlowException(HttpStatus.FORBIDDEN, "tenant.center.inactive");
-        tenantRlsContext.apply(id);
         return center;
     }
 
