@@ -65,10 +65,13 @@ class CenterMembershipServiceTest {
     void suspendedCenterIsRejectedEvenWhenMembershipIsActive() {
         User user = mock(User.class);
         when(user.getId()).thenReturn(7L);
+        when(user.isEnabled()).thenReturn(true);
+        when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
         Center center = mock(Center.class);
         when(center.getStatus()).thenReturn(CenterStatus.SUSPENDED);
         CenterMembership membership = mock(CenterMembership.class);
         when(membership.getStatus()).thenReturn(MembershipStatus.ACTIVE);
+        when(membership.getUser()).thenReturn(user);
         when(membership.getCenter()).thenReturn(center);
         when(membershipRepository.findByCenterIdAndUserId(12L, 7L)).thenReturn(Optional.of(membership));
 
@@ -79,10 +82,13 @@ class CenterMembershipServiceTest {
     void roleMustMatchMembershipInTheRequestedCenter() {
         User user = mock(User.class);
         when(user.getId()).thenReturn(7L);
+        when(user.isEnabled()).thenReturn(true);
+        when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
         Center center = mock(Center.class);
         when(center.getStatus()).thenReturn(CenterStatus.ACTIVE);
         CenterMembership membership = mock(CenterMembership.class);
         when(membership.getStatus()).thenReturn(MembershipStatus.ACTIVE);
+        when(membership.getUser()).thenReturn(user);
         when(membership.getCenter()).thenReturn(center);
         when(membership.getRole()).thenReturn(Role.TEACHER);
         when(membershipRepository.findByCenterIdAndUserId(12L, 7L)).thenReturn(Optional.of(membership));
