@@ -2,18 +2,42 @@
 
 ## PostgreSQL roles and RLS
 
-The application must connect as the restricted `DB_USERNAME` role, never as the bootstrap superuser. On a fresh Docker volume, `docker/postgres/init/01-create-app-role.sh` creates that role before Flyway runs. Flyway then creates application tables owned by the restricted role. V6 enables and forces RLS for tenant business tables.
+The application runtime must connect only as the restricted `DB_USERNAME` role. Flyway must connect as the separate `DB_MIGRATION_USERNAME` role. The bootstrap `POSTGRES_ADMIN_USER` is reserved for database administration and initialization; it must never be used by the application.
 
-For an existing database, create a dedicated login role through an administrator connection, grant CONNECT and USAGE/CREATE on schema public, and grant the role ownership of application objects or run Flyway as that restricted role before enabling V6. Do not use a superuser or a role with BYPASSRLS for the application.
+On a fresh Docker volume, `docker/postgres/init/01-create-app-role.sh` creates both roles. The migration role owns objects created by Flyway. The runtime role receives DML privileges on application tables and sequence usage, but has no schema CREATE privilege and must not own tenant tables. PostgreSQL RLS is enabled and forced on tenant business tables.
 
-Every tenant-scoped service transaction must call `TenantRlsContext.apply(centerId)` before querying tenant tables. This uses transaction-local PostgreSQL configuration; it is intentionally not a session-level setting. New tenant tables must receive an RLS policy in a Flyway migration and an integration test.
+For an existing database, Docker initialization scripts do not rerun. Schedule a maintenance window and take/verify a backup first. Connect as the database administrator and provision the migration role, transfer existing application objects from the old runtime role, and restore only the runtime privileges required by the application. Example for a dedicated EduPilot database (replace role names and use a secret manager; do not paste real passwords into shell history):
+
+```sql
+CREATE ROLE edupilot_migrator LOGIN PASSWORD 'REPLACE_WITH_A_UNIQUE_SECRET';
+GRANT CONNECT ON DATABASE edupilot TO edupilot_migrator;
+GRANT USAGE, CREATE ON SCHEMA public TO edupilot_migrator;
+
+-- Run only after confirming edupilot_app owns only EduPilot application objects.
+REASSIGN OWNED BY edupilot_app TO edupilot_migrator;
+
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE CREATE ON SCHEMA public FROM edupilot_app;
+GRANT USAGE ON SCHEMA public TO edupilot_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO edupilot_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO edupilot_app;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE edupilot_migrator IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO edupilot_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE edupilot_migrator IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO edupilot_app;
+```
+
+Set `DB_MIGRATION_USERNAME=edupilot_migrator` and `DB_MIGRATION_PASSWORD` in the deployment secret store before starting the new application version. Existing Flyway history and application objects must be owned by the migration role after the transfer. Verify that the runtime role is not a superuser, has no `BYPASSRLS`, owns no tenant tables, and has no schema CREATE privilege. Do not run the transfer blindly if the old runtime role owns unrelated objects; inspect ownership first and transfer only EduPilot objects.
+
+Every tenant-scoped service transaction must call `TenantRlsContext.apply(centerId)` before querying tenant tables. This uses transaction-local PostgreSQL configuration; it is intentionally not a session-level setting. New tenant tables must receive an RLS policy in a Flyway migration and integration tests for SELECT, INSERT, UPDATE, and DELETE behavior.
 
 ## Fresh local setup
 
 1. Copy `.env.example` to `.env` and replace every placeholder with a unique secret.
 2. Start the infrastructure with `docker compose up -d`.
-3. On an existing Postgres volume, Docker init scripts do not rerun. Create the restricted application role manually; never delete a volume to make initialization rerun unless the data is disposable and backed up.
-4. Run the backend with the same `DB_USERNAME`, `DB_PASSWORD`, `REDIS_PASSWORD`, and `JWT_SECRET` values.
+3. For an existing Postgres volume, follow the role-separation maintenance procedure above; Docker init scripts do not rerun.
+4. Run the backend with both runtime and Flyway credentials, plus `REDIS_PASSWORD` and `JWT_SECRET`.
 5. Verify `/actuator/health`, login rate limiting, and tenant-scoped reads/writes.
 
 ## Backup and restore
@@ -37,7 +61,7 @@ Do not run this against production without a change window and explicit capacity
 ## Before production
 
 - Configure TLS termination, trusted proxy IP handling, secure cookies if browser token storage is redesigned, and strict CORS origins.
-- Use non-superuser DB credentials; verify RLS using the actual application DB role.
+- Use separate migration and runtime DB credentials; verify the runtime role is not a table owner, superuser, or `BYPASSRLS`.
 - Configure Redis persistence, authentication, network isolation, and monitoring.
 - Add external uptime/alerting, centralized structured logs, audit retention, secret rotation, vulnerability scanning, and restore drills.
 - Define data retention, privacy, incident response, and access review policies.
