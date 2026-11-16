@@ -252,6 +252,23 @@ class PostgresTenantRlsIntegrationTest {
   Boolean bypass=admin.queryForObject("SELECT rolbypassrls OR rolsuper FROM pg_roles WHERE rolname='edupilot_app'",Boolean.class);
   assertEquals(Boolean.FALSE,bypass,"Application DB role must not be superuser or BYPASSRLS.");
  }
+
+ @Test void applicationDatabaseRoleMustNotOwnTenantTablesOrCreateSchemaObjects() {
+  Integer ownedTables=admin.queryForObject("""
+   SELECT COUNT(*)
+   FROM pg_class c
+   JOIN pg_namespace n ON n.oid=c.relnamespace
+   JOIN pg_roles r ON r.oid=c.relowner
+   WHERE n.nspname='public'
+     AND c.relkind IN ('r','p')
+     AND r.rolname='edupilot_app'
+   """,Integer.class);
+  assertEquals(0,ownedTables,"Runtime role must not own tables; Flyway must use the migration role.");
+
+  Boolean canCreate=admin.queryForObject(
+   "SELECT has_schema_privilege('edupilot_app','public','CREATE')",Boolean.class);
+  assertEquals(Boolean.FALSE,canCreate,"Runtime role must not be able to create or replace schema objects.");
+ }
  @Test void updateCannotReadOrModifyAnotherTenantsRows() {
   Integer changed=appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
