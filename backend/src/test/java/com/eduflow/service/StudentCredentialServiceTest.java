@@ -10,6 +10,7 @@ import com.eduflow.repository.StudentRepository;
 import com.eduflow.repository.UserRepository;
 import com.eduflow.security.TenantRlsContext;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
