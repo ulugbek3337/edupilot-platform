@@ -7,6 +7,7 @@ import com.eduflow.entity.Student;
 import com.eduflow.entity.StudentStatus;
 import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.CenterRepository;
+import com.eduflow.repository.RefreshTokenRepository;
 import com.eduflow.repository.StudentRepository;
 import com.eduflow.security.TenantRlsContext;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final CenterRepository centerRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final TenantRlsContext tenantRlsContext;
 
     @Transactional(readOnly = true)
@@ -76,6 +78,14 @@ public class StudentService {
     public void deactivate(Long centerId, Long studentId) {
         Student student = get(centerId, studentId);
         student.setStatus(StudentStatus.INACTIVE);
+
+        // Deactivation must also disable the provisioned login immediately.
+        // JwtAuthenticationFilter reloads UserDetails on every request, so this
+        // invalidates existing access tokens as well as preventing future logins.
+        if (student.getUser() != null && student.getUser().isStudentAccount()) {
+            student.getUser().setEnabled(false);
+            refreshTokenRepository.deleteByUserId(student.getUser().getId());
+        }
     }
 
     private Center requireActiveCenter(Long centerId) {
