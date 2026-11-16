@@ -54,7 +54,17 @@ public final class AuthDtos {
             boolean mustChangePassword) {
     }
 
-    public record CenterRole(Long centerId, String role) {\n    }\n\n    public record UserSummary(Long id, String email, String firstName, String lastName, String preferredLanguage, boolean mustChangePassword, List<CenterRole> memberships) {
+    public record CenterRole(Long centerId, String role) {
+    }
+
+    public record UserSummary(
+            Long id,
+            String email,
+            String firstName,
+            String lastName,
+            String preferredLanguage,
+            boolean mustChangePassword,
+            List<CenterRole> memberships) {
     }
 
     public record CenterSummary(Long id, String name, String slug, String status) {
