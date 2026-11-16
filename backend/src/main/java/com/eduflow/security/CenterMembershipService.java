@@ -5,6 +5,7 @@ import com.eduflow.entity.CenterStatus;
 import com.eduflow.entity.MembershipStatus;
 import com.eduflow.entity.Role;
 import com.eduflow.entity.User;
+import com.eduflow.entity.UserStatus;
 import com.eduflow.repository.CenterMembershipRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -67,6 +68,8 @@ public class CenterMembershipService {
 
         return centerMembershipRepository.findByCenterIdAndUserId(centerId, userId)
                 .filter(membership -> membership.getStatus() == MembershipStatus.ACTIVE)
+                .filter(membership -> membership.getUser() != null && membership.getUser().isEnabled())
+                .filter(membership -> membership.getUser().getStatus() == UserStatus.ACTIVE)
                 .filter(membership -> membership.getCenter() != null)
                 .filter(membership -> membership.getCenter().getStatus() == CenterStatus.ACTIVE);
     }
