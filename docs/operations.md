@@ -28,9 +28,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE edupilot_migrator IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO edupilot_app;
 ```
 
-Set `DB_MIGRATION_USERNAME=edupilot_migrator` and `DB_MIGRATION_PASSWORD` in the deployment secret store before starting the new application version. Existing Flyway history and application objects must be owned by the migration role after the transfer. Verify that the runtime role is not a superuser, has no `BYPASSRLS`, owns no tenant tables, and has no schema CREATE privilege. Do not run the transfer blindly if the old runtime role owns unrelated objects; inspect ownership first and transfer only EduPilot objects.
+Set `DB_MIGRATION_USERNAME=edupilot_migrator` and `DB_MIGRATION_PASSWORD` in the deployment secret store before starting the new application version. The migration role intentionally has `BYPASSRLS` so trusted Flyway migrations and preflight checks can inspect all tenant rows even on `FORCE ROW LEVEL SECURITY` tables. It must be a non-superuser, its credential must be available only to deployment/migration automation, and it must never be used by the application runtime. Existing Flyway history and application objects must be owned by the migration role after the transfer. Verify that the runtime role is `NOSUPERUSER`, `NOBYPASSRLS`, owns no application tables, and has no schema CREATE privilege. Do not run the transfer blindly if the old runtime role owns unrelated objects; inspect ownership first and transfer only EduPilot objects.
 
-Every tenant-scoped service transaction must call `TenantRlsContext.apply(centerId)` before querying tenant tables. This uses transaction-local PostgreSQL configuration; it is intentionally not a session-level setting. New tenant tables must receive an RLS policy in a Flyway migration and integration tests for SELECT, INSERT, UPDATE, and DELETE behavior.
+Every tenant-scoped service transaction must call `TenantRlsContext.apply(centerId)` before querying tenant tables. Identity-owned operations must call `TenantRlsContext.applyUser(userId)` before querying or changing memberships and refresh tokens. These values use transaction-local PostgreSQL configuration; they are intentionally not session-level settings. `center_memberships` permits the authenticated user to read only their own membership rows before center selection, while selected-center operations can access rows in that center; all membership writes require a selected-center context. `refresh_tokens` is restricted to the current user ID. Global `users` and `centers` remain outside RLS because login and center discovery require global lookup paths; API services derive identities from verified JWT principals and membership records. New tenant tables must receive an RLS policy in a Flyway migration and integration tests for SELECT, INSERT, UPDATE, and DELETE behavior.
 
 ## Fresh local setup
 
@@ -61,7 +61,7 @@ Do not run this against production without a change window and explicit capacity
 ## Before production
 
 - Configure TLS termination, trusted proxy IP handling, secure cookies if browser token storage is redesigned, and strict CORS origins.
-- Use separate migration and runtime DB credentials; verify the runtime role is not a table owner, superuser, or `BYPASSRLS`.
+- Use separate migration and runtime DB credentials; verify the runtime role is not a table owner, superuser, or `BYPASSRLS`. Keep the migration role's `BYPASSRLS` credential restricted to deployment automation.
 - Configure Redis persistence, authentication, network isolation, and monitoring.
 - Add external uptime/alerting, centralized structured logs, audit retention, secret rotation, vulnerability scanning, and restore drills.
 - Define data retention, privacy, incident response, and access review policies.
