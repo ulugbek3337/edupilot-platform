@@ -16,5 +16,5 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
  if (response.status === 204) return undefined as T;
  return response.json() as Promise<T>;
 }
-export type AuthResult = { accessToken:string; refreshToken:string; userId:number; email:string; firstName:string; lastName:string; preferredLanguage:string };
+export type AuthResult = { accessToken:string; refreshToken:string; userId:number; email:string; firstName:string; lastName:string; preferredLanguage:string; mustChangePassword:boolean };
 export type Center = { id:number; name:string; slug:string; status:string };
