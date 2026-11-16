@@ -1,15 +1,16 @@
 package com.eduflow.security;
 import com.eduflow.entity.*; import com.eduflow.repository.*; import com.fasterxml.jackson.databind.JsonNode; import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test; import org.springframework.beans.factory.annotation.Autowired; import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc; import org.springframework.boot.test.context.SpringBootTest; import org.springframework.http.MediaType; import org.springframework.test.context.ActiveProfiles; import org.springframework.test.context.TestPropertySource; import org.springframework.test.web.servlet.MockMvc; import org.springframework.transaction.annotation.Transactional;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*; import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*; import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*; import static org.junit.jupiter.api.Assertions.assertFalse;
 @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles("test")
 @TestPropertySource(properties={"DB_URL=jdbc:h2:mem:parent_portal_it;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1","DB_USERNAME=sa","DB_PASSWORD=","spring.datasource.driver-class-name=org.h2.Driver","spring.jpa.hibernate.ddl-auto=create-drop","spring.jpa.database-platform=org.hibernate.dialect.H2Dialect","spring.flyway.enabled=false","JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=","JWT_EXPIRATION_MS=3600000","JWT_REFRESH_EXPIRATION_MS=604800000"})
 class ParentPortalIntegrationTest {
- @Autowired private MockMvc mvc; @Autowired private UserRepository users; @Autowired private CenterRepository centers; @Autowired private CenterMembershipRepository memberships; @Autowired private StudentRepository students; @Autowired private TeacherRepository teachers; @Autowired private CourseRepository courses; @Autowired private StudyGroupRepository groups; @Autowired private LessonRepository lessons; @Autowired private JwtService jwt; @Autowired private ObjectMapper mapper;
+ @Autowired private MockMvc mvc; @Autowired private UserRepository users; @Autowired private CenterRepository centers; @Autowired private CenterMembershipRepository memberships; @Autowired private StudentRepository students; @Autowired private TeacherRepository teachers; @Autowired private CourseRepository courses; @Autowired private StudyGroupRepository groups; @Autowired private LessonRepository lessons; @Autowired private JwtService jwt; @Autowired private ObjectMapper mapper; @Autowired private CenterMembershipService membershipService;
  @Test @Transactional void parentOnlySeesLinkedChildAndReceivesGradeAttendanceNotifications() throws Exception {
-  User admin=saveUser("parent-it-admin@example.test");User parent=saveUser("parent-it-user@example.test");
+  User admin=saveUser("parent-it-admin@example.test");User parent=saveUser("parent-it-user@example.test");User lockedParent=saveUser("parent-it-locked@example.test");lockedParent.setStatus(UserStatus.LOCKED);users.save(lockedParent);
   Center center=centers.save(new Center("Parent Test Center","parent-test-center",CenterStatus.ACTIVE));
-  memberships.save(new CenterMembership(center,admin,Role.CENTER_ADMIN));memberships.save(new CenterMembership(center,parent,Role.PARENT));
+  memberships.save(new CenterMembership(center,admin,Role.CENTER_ADMIN));memberships.save(new CenterMembership(center,parent,Role.PARENT));memberships.save(new CenterMembership(center,lockedParent,Role.PARENT));
+  assertFalse(membershipService.isActiveMember(lockedParent.getId(),center.getId()),"Locked users must not be treated as active center members.");
   Student student=students.save(new Student(center,"P-ST-01","Aziza","Karimova",null,null,null));
   Student unrelatedStudent=students.save(new Student(center,"P-ST-02","Bekzod","Karimov",null,null,null));
   Teacher teacher=teachers.save(new Teacher(center,"P-T-01","Dilshod","Olimov",null,null,null));
