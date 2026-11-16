@@ -51,3 +51,27 @@ CREATE POLICY refresh_tokens_owner_only
     WITH CHECK (
         user_id = NULLIF(current_setting('app.current_user_id', true), '')::BIGINT
     );
+
+-- The runtime role receives default DML grants for application tables. Keep
+-- Flyway's control table private to the migration owner so the app cannot
+-- rewrite migration history or suppress future schema upgrades.
+REVOKE ALL PRIVILEGES ON TABLE flyway_schema_history FROM PUBLIC;
+
+DO $$
+DECLARE
+    grantee_role TEXT;
+BEGIN
+    FOR grantee_role IN
+        SELECT DISTINCT grantee
+        FROM information_schema.role_table_grants
+        WHERE table_schema = current_schema()
+          AND table_name = 'flyway_schema_history'
+          AND grantee NOT IN (current_user, 'PUBLIC')
+    LOOP
+        EXECUTE format(
+            'REVOKE ALL PRIVILEGES ON TABLE %I.flyway_schema_history FROM %I',
+            current_schema(),
+            grantee_role
+        );
+    END LOOP;
+END $$;
