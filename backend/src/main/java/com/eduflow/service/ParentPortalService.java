@@ -29,12 +29,12 @@ public class ParentPortalService {
         if (centerId == null) {
             throw new EduFlowException(HttpStatus.BAD_REQUEST, "tenant.context.required");
         }
+        tenantRls.apply(centerId);
         Center center = centers.findById(centerId)
                 .orElseThrow(() -> new EduFlowException(HttpStatus.NOT_FOUND, "center.not-found"));
         if (center.getStatus() != CenterStatus.ACTIVE) {
             throw new EduFlowException(HttpStatus.FORBIDDEN, "tenant.center.inactive");
         }
-        tenantRls.apply(centerId);
     }
 
     @Transactional
