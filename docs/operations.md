@@ -9,7 +9,9 @@ On a fresh Docker volume, `docker/postgres/init/01-create-app-role.sh` creates b
 For an existing database, Docker initialization scripts do not rerun. Schedule a maintenance window and take/verify a backup first. Connect as the database administrator and provision the migration role, transfer existing application objects from the old runtime role, and restore only the runtime privileges required by the application. Example for a dedicated EduPilot database (replace role names and use a secret manager; do not paste real passwords into shell history):
 
 ```sql
-CREATE ROLE edupilot_migrator LOGIN PASSWORD 'REPLACE_WITH_A_UNIQUE_SECRET';
+CREATE ROLE edupilot_migrator LOGIN PASSWORD 'REPLACE_WITH_A_UNIQUE_SECRET' NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
+ALTER ROLE edupilot_app NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+ALTER ROLE edupilot_migrator NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
 GRANT CONNECT ON DATABASE edupilot TO edupilot_migrator;
 GRANT USAGE, CREATE ON SCHEMA public TO edupilot_migrator;
 
@@ -21,6 +23,7 @@ REVOKE CREATE ON SCHEMA public FROM edupilot_app;
 GRANT USAGE ON SCHEMA public TO edupilot_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO edupilot_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO edupilot_app;
+REVOKE ALL PRIVILEGES ON TABLE public.flyway_schema_history FROM edupilot_app, PUBLIC;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE edupilot_migrator IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO edupilot_app;
