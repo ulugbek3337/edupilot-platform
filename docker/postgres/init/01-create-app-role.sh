@@ -10,10 +10,13 @@ psql --set=ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
   --set=app_user="$DB_USERNAME" --set=app_password="$DB_PASSWORD" \
   --set=migration_user="$DB_MIGRATION_USERNAME" --set=migration_password="$DB_MIGRATION_PASSWORD" \
   --set=db_name="$POSTGRES_DB" <<'SQL'
-SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'app_user', :'app_password')
+SELECT format('CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS', :'app_user', :'app_password')
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user') \gexec
-SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'migration_user', :'migration_password')
+SELECT format('CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS', :'migration_user', :'migration_password')
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'migration_user') \gexec
+
+ALTER ROLE :"app_user" NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+ALTER ROLE :"migration_user" NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
 
 GRANT CONNECT ON DATABASE :"db_name" TO :"app_user", :"migration_user";
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
