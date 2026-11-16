@@ -69,13 +69,18 @@ jobs:
         run: npm audit --audit-level=high
 
   infrastructure:
-    name: Docker Compose validation
+    name: Infrastructure and operations validation
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Validate Compose configuration
+      - name: Validate shell scripts
+        run: |
+          bash -n scripts/backup-postgres.sh scripts/restore-postgres.sh
+          sh -n docker/postgres/init/01-create-app-role.sh
+
+      - name: Validate Docker Compose configuration
         env:
           DB_NAME: edupilot_ci
           DB_USERNAME: edupilot_app
