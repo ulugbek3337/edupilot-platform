@@ -147,6 +147,39 @@ class TeacherPortalIntegrationTest {
                         .header("Authorization", "Bearer " + teacherToken)
                         .header("X-Center-Id", center.getId()))
                 .andExpect(status().isForbidden());
+
+        mvc.perform(post("/api/v1/teacher-portal/attendance")
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-Center-Id", center.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"lessonId":%d,"studentId":%d,"status":"PRESENT","note":"Test"}
+                                """.formatted(lessons.findAllByCenter_IdAndGroup_IdOrderByStartsAtAsc(center.getId(), assignedGroup.getId()).get(0).getId(), assignedStudent.getId())))
+                .andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/teacher-portal/attendance")
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-Center-Id", center.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"lessonId":%d,"studentId":%d,"status":"PRESENT"}
+                                """.formatted(otherLesson.getId(), otherStudent.getId())))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/api/v1/teacher-portal/grades")
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-Center-Id", center.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"studentId":%d,"groupId":%d,"title":"Algebra test","score":90,"maxScore":100}
+                                """.formatted(assignedStudent.getId(), assignedGroup.getId())))
+                .andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/teacher-portal/grades")
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-Center-Id", center.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"studentId":%d,"groupId":%d,"title":"Unauthorized grade","score":90,"maxScore":100}
+                                """.formatted(otherStudent.getId(), otherGroup.getId())))
+                .andExpect(status().isNotFound());
     }
 
     private User activeUser(String email) {
