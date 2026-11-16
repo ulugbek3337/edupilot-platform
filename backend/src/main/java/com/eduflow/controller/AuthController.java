@@ -6,7 +6,7 @@ import com.eduflow.dto.AuthDtos.LanguageUpdateRequest;
 import com.eduflow.dto.AuthDtos.ChangePasswordRequest;
 import com.eduflow.dto.AuthDtos.RefreshRequest;
 import com.eduflow.dto.AuthDtos.RegisterRequest;
-import com.eduflow.dto.AuthDtos.UserSummary;
+import com.eduflow.dto.AuthDtos.UserSummary;\nimport com.eduflow.dto.AuthDtos.CenterRole;\nimport com.eduflow.entity.CenterStatus;\nimport com.eduflow.entity.MembershipStatus;\nimport com.eduflow.repository.CenterMembershipRepository;
 import com.eduflow.entity.User;
 import com.eduflow.security.AuthenticatedUser;
 import com.eduflow.service.AuthService;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+    private final AuthService authService;\n    private final CenterMembershipRepository memberships;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
