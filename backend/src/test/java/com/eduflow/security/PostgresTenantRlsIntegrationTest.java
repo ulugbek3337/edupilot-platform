@@ -1,8 +1,10 @@
 package com.eduflow.security;
 
 import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -20,6 +22,7 @@ class PostgresTenantRlsIntegrationTest {
   .withDatabaseName("edupilot_rls").withUsername("postgres").withPassword("postgres");
  static JdbcTemplate admin;
  static JdbcTemplate app;
+ static HikariDataSource appDataSource;
  static TransactionTemplate appTransaction;
 
  @BeforeAll static void migrateAndSeed() {
@@ -50,9 +53,17 @@ class PostgresTenantRlsIntegrationTest {
   admin.update("INSERT INTO lessons(id,center_id,group_id,title,starts_at,ends_at) VALUES (701,101,501,'One Lesson','2026-01-01 10:00:00','2026-01-01 11:00:00'),(702,202,502,'Two Lesson','2026-01-01 10:00:00','2026-01-01 11:00:00')");
   admin.update("INSERT INTO group_enrollments(center_id,group_id,student_id) VALUES (101,501,1),(202,502,2)");
   admin.update("INSERT INTO refresh_tokens(token,user_id,revoked,expires_at) VALUES ('" + "a".repeat(64) + "',601,FALSE,CURRENT_TIMESTAMP + INTERVAL '1 day'),('" + "b".repeat(64) + "',602,FALSE,CURRENT_TIMESTAMP + INTERVAL '1 day')");
-  DataSource appDs=dataSource("edupilot_app","app-password");
-  app=new JdbcTemplate(appDs);
-  appTransaction=new TransactionTemplate(new DataSourceTransactionManager(appDs));
+  appDataSource=new HikariDataSource();
+  appDataSource.setJdbcUrl(postgres.getJdbcUrl());
+  appDataSource.setUsername("edupilot_app");
+  appDataSource.setPassword("app-password");
+  appDataSource.setMaximumPoolSize(1);
+  appDataSource.setMinimumIdle(1);
+  app=new JdbcTemplate(appDataSource);
+  appTransaction=new TransactionTemplate(new DataSourceTransactionManager(appDataSource));
+ }
+ @AfterAll static void closePool() {
+  if(appDataSource!=null) appDataSource.close();
  }
  private static DataSource dataSource(String user,String password) {
   DriverManagerDataSource ds=new DriverManagerDataSource(postgres.getJdbcUrl(),user,password);
@@ -384,13 +395,18 @@ class PostgresTenantRlsIntegrationTest {
   Integer stillThere=admin.queryForObject("SELECT COUNT(*) FROM students WHERE center_id=202 AND student_number='S-202'",Integer.class);
   assertEquals(1,stillThere);
  }
- @Test void tenantContextDoesNotLeakAcrossPooledTransactions() {
+ @Test void tenantAndUserContextsDoNotLeakAcrossReusedPoolConnection() {
   Integer first=appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
    return app.queryForObject("SELECT COUNT(*) FROM students",Integer.class);
   });
-  Integer second=appTransaction.execute(status->app.queryForObject("SELECT COUNT(*) FROM students",Integer.class));
+  Integer secondStudents=appTransaction.execute(status->app.queryForObject("SELECT COUNT(*) FROM students",Integer.class));
+  Integer secondMemberships=appTransaction.execute(status->app.queryForObject("SELECT COUNT(*) FROM center_memberships",Integer.class));
+  Integer secondTokens=appTransaction.execute(status->app.queryForObject("SELECT COUNT(*) FROM refresh_tokens",Integer.class));
   assertEquals(1,first);
-  assertEquals(0,second,"SET LOCAL tenant context must be cleared at transaction completion.");
+  assertEquals(0,secondStudents,"SET LOCAL center context must be cleared at transaction completion.");
+  assertEquals(0,secondMemberships,"SET LOCAL user context must be cleared at transaction completion.");
+  assertEquals(0,secondTokens,"A prior user's refresh-token context must not leak to the next request.");
  }
 }
