@@ -25,9 +25,9 @@ class ParentPortalIntegrationTest {
   mvc.perform(get("/api/v1/parents/accounts").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
    .andExpect(status().isForbidden());
   mvc.perform(post("/api/v1/parents/links").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"parentUserId\":"+lockedParent.getId()+",\"studentId\":"+unrelatedStudent.getId()+"}"))
-   .andExpect(status().isNotFound());
+   .andExpect(status().isForbidden());
   mvc.perform(post("/api/v1/parents/links").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"parentUserId\":"+admin.getId()+",\"studentId\":"+unrelatedStudent.getId()+"}"))
-   .andExpect(status().isNotFound());
+   .andExpect(status().isForbidden());
   mvc.perform(post("/api/v1/group-enrollments").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON)
     .content("{\"groupId\":"+group.getId()+",\"studentId\":"+student.getId()+"}"))
    .andExpect(status().isCreated());
