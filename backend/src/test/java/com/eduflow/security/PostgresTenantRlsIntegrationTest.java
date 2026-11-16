@@ -35,8 +35,6 @@ class PostgresTenantRlsIntegrationTest {
   admin.execute("ALTER DEFAULT PRIVILEGES FOR ROLE edupilot_migrator IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO edupilot_app");
   Flyway.configure().dataSource(postgres.getJdbcUrl(),"edupilot_migrator","migration-password")
    .locations("classpath:db/migration").load().migrate();
-  admin.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO edupilot_app");
-  admin.execute("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO edupilot_app");
   admin.update("INSERT INTO centers(id,name,slug,status) VALUES (101,'Center One','center-one','ACTIVE'),(202,'Center Two','center-two','ACTIVE')");
   admin.update("INSERT INTO students(center_id,student_number,first_name,last_name) VALUES (101,'S-101','One','Student'),(202,'S-202','Two','Student')");
   admin.update("INSERT INTO users(id,email,password_hash,first_name,last_name) VALUES (601,'parent-one@example.test','not-a-real-hash','Parent','One'),(602,'parent-two@example.test','not-a-real-hash','Parent','Two'),(603,'student-one@example.test','not-a-real-hash','Student','One'),(604,'student-two@example.test','not-a-real-hash','Student','Two'),(605,'teacher-one@example.test','not-a-real-hash','Teacher','One'),(606,'teacher-two@example.test','not-a-real-hash','Teacher','Two'),(607,'wrong-role@example.test','not-a-real-hash','Wrong','Role'),(608,'new-member@example.test','not-a-real-hash','New','Member')");
@@ -328,6 +326,11 @@ class PostgresTenantRlsIntegrationTest {
    app.update("INSERT INTO refresh_tokens(token,user_id,revoked,expires_at) VALUES ('" + "c".repeat(64) + "',602,FALSE,CURRENT_TIMESTAMP + INTERVAL '1 day')");
    return null;
   }));
+ }
+
+ @Test void runtimeRoleCannotReadOrChangeFlywayMigrationHistory() {
+  assertThrows(org.springframework.dao.DataAccessException.class,
+   ()->app.queryForObject("SELECT COUNT(*) FROM flyway_schema_history",Integer.class));
  }
 
  @Test void applicationDatabaseRoleCannotBypassRowLevelSecurity() {
