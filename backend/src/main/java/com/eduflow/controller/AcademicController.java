@@ -3,7 +3,7 @@ import com.eduflow.dto.AcademicDtos.*; import com.eduflow.entity.*; import com.e
 @RestController @RequestMapping("/api/v1") @RequiredArgsConstructor @PreAuthorize("hasRole('USER')")
 public class AcademicController {
  private final AcademicService service; private final CenterMembershipService memberships; private final AuditLogService audit;
- private Long center(AuthenticatedUser p){Long id=CurrentCenterContext.get();if(id==null)throw new com.eduflow.exception.EduFlowException(HttpStatus.BAD_REQUEST,"tenant.context.required");memberships.assertRoleForUserId(p.id(),id,Role.CENTER_ADMIN,Role.TEACHER);return id;}
+ private Long center(AuthenticatedUser p){Long id=CurrentCenterContext.get();if(id==null)throw new com.eduflow.exception.EduFlowException(HttpStatus.BAD_REQUEST,"tenant.context.required");memberships.assertRoleForUserId(p.id(),id,Role.CENTER_ADMIN);return id;}
  private void admin(AuthenticatedUser p,Long id){memberships.assertRoleForUserId(p.id(),id,Role.CENTER_ADMIN);}
  private TeacherResponse teacher(Teacher x){return new TeacherResponse(x.getId(),x.getTeacherCode(),x.getFirstName(),x.getLastName(),x.getEmail(),x.getPhone(),x.getSpecialization(),x.getStatus(),x.getCreatedAt());}
  private CourseResponse course(Course x){return new CourseResponse(x.getId(),x.getCourseCode(),x.getName(),x.getDescription(),x.isActive()?"ACTIVE":"INACTIVE",x.getCreatedAt());}
