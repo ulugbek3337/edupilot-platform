@@ -5,7 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @SpringBootTest @AutoConfigureMockMvc @ActiveProfiles("test")
 @TestPropertySource(properties={"DB_URL=jdbc:h2:mem:parent_portal_it;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1","DB_USERNAME=sa","DB_PASSWORD=","spring.datasource.driver-class-name=org.h2.Driver","spring.jpa.hibernate.ddl-auto=create-drop","spring.jpa.database-platform=org.hibernate.dialect.H2Dialect","spring.flyway.enabled=false","JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=","JWT_EXPIRATION_MS=3600000","JWT_REFRESH_EXPIRATION_MS=604800000"})
 class ParentPortalIntegrationTest {
- @Autowired private MockMvc mvc; @Autowired private UserRepository users; @Autowired private CenterRepository centers; @Autowired private CenterMembershipRepository memberships; @Autowired private StudentRepository students; @Autowired private TeacherRepository teachers; @Autowired private CourseRepository courses; @Autowired private StudyGroupRepository groups; @Autowired private LessonRepository lessons; @Autowired private JwtService jwt; @Autowired private ObjectMapper mapper; @Autowired private CenterMembershipService membershipService;
+ @Autowired private MockMvc mvc; @Autowired private UserRepository users; @Autowired private CenterRepository centers; @Autowired private CenterMembershipRepository memberships; @Autowired private StudentRepository students; @Autowired private TeacherRepository teachers; @Autowired private CourseRepository courses; @Autowired private StudyGroupRepository groups; @Autowired private LessonRepository lessons; @Autowired private JwtService jwt; @Autowired private ObjectMapper mapper; @Autowired private CenterMembershipService membershipService; @Autowired private ParentStudentLinkRepository parentLinks;
  @Test @Transactional void parentOnlySeesLinkedChildAndReceivesGradeAttendanceNotifications() throws Exception {
   User admin=saveUser("parent-it-admin@example.test");User parent=saveUser("parent-it-user@example.test");User lockedParent=saveUser("parent-it-locked@example.test");lockedParent.setStatus(UserStatus.LOCKED);users.save(lockedParent);
   Center center=centers.save(new Center("Parent Test Center","parent-test-center",CenterStatus.ACTIVE));
@@ -53,6 +53,11 @@ class ParentPortalIntegrationTest {
    .andExpect(status().isBadRequest());
   mvc.perform(get("/api/v1/audit-logs").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
    .andExpect(status().isForbidden());
+  ParentStudentLink oldLink=parentLinks.findAllByCenter_IdAndParent_IdAndActiveTrueOrderByStudent_LastNameAsc(center.getId(),parent.getId()).get(0);
+  oldLink.setActive(false); parentLinks.save(oldLink);
+  mvc.perform(post("/api/v1/parents/links").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"parentUserId\":"+parent.getId()+",\"studentId\":"+student.getId()+"}"))
+   .andExpect(status().isCreated());
+  org.junit.jupiter.api.Assertions.assertTrue(parentLinks.findByCenter_IdAndParent_IdAndStudent_IdAndActiveTrue(center.getId(),parent.getId(),student.getId()).isPresent(),"An inactive parent link should be reactivated instead of violating the unique constraint.");
  }
  private User saveUser(String email){User u=new User(email,"not-a-real-password-hash","Integration","User");u.setEnabled(true);u.setStatus(UserStatus.ACTIVE);return users.save(u);}
 }
