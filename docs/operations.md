@@ -53,13 +53,23 @@ Every tenant-scoped service transaction must call `TenantRlsContext.apply(center
 
 ## Load testing
 
-`load-tests/k6-academic.js` exercises authenticated read endpoints at 10–100 virtual users. Run only against staging with a dedicated test account and synthetic data:
+`load-tests/k6-academic.js` provides three bounded profiles:
 
-```bash
-k6 run -e BASE_URL=https://staging.example.com -e ACCESS_TOKEN=... -e CENTER_ID=123 load-tests/k6-academic.js
-```
+- `smoke`: one iteration for CI syntax/behavior validation against the local mock API.
+- `baseline`: ramps 10 → 50 → 100 virtual users and measures read-only academic endpoints.
+- `stress`: ramps 25 → 100 → 200 → 300 virtual users to find the staging capacity boundary.
 
-Do not run this against production without a change window and explicit capacity limits. Tune thresholds from observed baseline, not assumptions.
+The authenticated test account must be a dedicated center administrator with read-only test data in practice (the script sends GET requests only). Configure these GitHub **staging environment** values before dispatching `.github/workflows/load-test.yml`:
+
+- Secret `STAGING_LOAD_TEST_ACCESS_TOKEN`: short-lived token for the dedicated staging test account.
+- Variable `STAGING_LOAD_TEST_CENTER_ID`: the account's active test center.
+- Variable `STAGING_LOAD_TEST_OTHER_CENTER_ID`: a different active center used to verify cross-tenant denial.
+
+Dispatch the workflow manually, supply the staging HTTPS origin, and select either `baseline` or `stress`. The workflow is bound to the GitHub `staging` environment so its protection rules/approval can gate execution. It rejects non-HTTPS URLs and invalid/matching center IDs. The k6 summary is retained as a workflow artifact for 14 days.
+
+For a local CI smoke test, the workflow uses `load-tests/mock_server.py`; this is only a protocol stub and is not a performance benchmark. Real load measurements require staging infrastructure with production-like database size, Redis, CPU/memory limits, and monitoring. Record p50/p95/p99 latency, request rate, error rate, CPU, memory, PostgreSQL connections/locks/slow queries, and Redis latency/evictions. Repeat each profile at least three times and compare results against a recorded baseline.
+
+Do not run this against production without a change window, explicit capacity limits, and owner approval. A 300-VU test is not evidence that the platform supports 300 simultaneous video streams or any specific number of concurrent users; it measures only these read API paths. Tune thresholds from measured staging baselines, not assumptions.
 
 ## Before production
 
