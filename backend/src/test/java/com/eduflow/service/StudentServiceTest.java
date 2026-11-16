@@ -5,6 +5,8 @@ import com.eduflow.entity.Center;
 import com.eduflow.entity.CenterStatus;
 import com.eduflow.entity.Student;
 import com.eduflow.entity.StudentStatus;
+import com.eduflow.entity.GroupEnrollment;
+import com.eduflow.entity.ParentStudentLink;
 import com.eduflow.entity.User;
 import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.CenterRepository;
@@ -89,8 +91,10 @@ class StudentServiceTest {
 
         when(centerRepository.findById(10L)).thenReturn(Optional.of(center));
         when(studentRepository.findByIdAndCenter_Id(1L, 10L)).thenReturn(Optional.of(student));
-        when(groupEnrollments.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L)).thenReturn(List.of());
-        when(parentLinks.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L)).thenReturn(List.of());
+        GroupEnrollment enrollment = mock(GroupEnrollment.class);
+        ParentStudentLink parentLink = mock(ParentStudentLink.class);
+        when(groupEnrollments.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L)).thenReturn(List.of(enrollment));
+        when(parentLinks.findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L)).thenReturn(List.of(parentLink));
 
         studentService.deactivate(10L, 1L);
 
@@ -99,6 +103,8 @@ class StudentServiceTest {
         verify(refreshTokenRepository).deleteByUserId(700L);
         verify(groupEnrollments).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L);
         verify(parentLinks).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L);
+        verify(enrollment).setActive(false);
+        verify(parentLink).setActive(false);
     }
 
     @Test
