@@ -123,7 +123,9 @@ public class AuthService {
         }
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        refreshTokenRepository.deleteByUserId(user.getId());
+        return saved;
     }
 
     @Transactional
