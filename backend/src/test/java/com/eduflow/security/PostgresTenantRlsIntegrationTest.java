@@ -103,6 +103,27 @@ class PostgresTenantRlsIntegrationTest {
   });
   assertEquals(1,visible);
  }
+ @Test void inactiveEnrollmentCanBeReplacedButOnlyOneActiveEnrollmentIsAllowed() {
+  Integer activeRows=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("UPDATE group_enrollments SET active=FALSE WHERE center_id=101 AND group_id=501 AND student_id=1");
+   app.update("INSERT INTO group_enrollments(center_id,group_id,student_id,active) VALUES (101,501,1,TRUE)");
+   Integer active=app.queryForObject("SELECT COUNT(*) FROM group_enrollments WHERE center_id=101 AND group_id=501 AND student_id=1 AND active=TRUE",Integer.class);
+   Integer inactive=app.queryForObject("SELECT COUNT(*) FROM group_enrollments WHERE center_id=101 AND group_id=501 AND student_id=1 AND active=FALSE",Integer.class);
+   assertEquals(1,active);
+   assertEquals(1,inactive);
+   status.setRollbackOnly();
+   return active;
+  });
+  assertEquals(1,activeRows);
+ }
+ @Test void duplicateActiveEnrollmentIsRejectedByDatabaseConstraint() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO group_enrollments(center_id,group_id,student_id,active) VALUES (101,501,1,TRUE)");
+   return null;
+  }));
+ }
  @Test void tenantCannotInsertRowsForAnotherCenter() {
   assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
