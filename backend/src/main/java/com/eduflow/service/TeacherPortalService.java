@@ -32,6 +32,7 @@ public class TeacherPortalService {
     private final AcademicService academic;
     private final PasswordEncoder passwordEncoder;
     private final TenantRlsContext tenantRlsContext;
+    private final AuditLogService audit;
     private final SecureRandom random = new SecureRandom();
 
     private Center center(Long id) {
@@ -122,6 +123,8 @@ public class TeacherPortalService {
                 .orElseThrow(() -> new EduFlowException(HttpStatus.NOT_FOUND, "lesson.not-found"));
         ownedGroup(centerId, teacher, lesson.getGroup().getId());
         academic.markAttendance(centerId, request);
+        audit.record(centerId, userId, "TEACHER_ATTENDANCE_MARKED", "Lesson",
+                request.lessonId(), "Student " + request.studentId());
     }
 
     @Transactional
@@ -130,6 +133,8 @@ public class TeacherPortalService {
         Teacher teacher = teacher(centerId, userId);
         ownedGroup(centerId, teacher, request.groupId());
         academic.addGrade(centerId, request);
+        audit.record(centerId, userId, "TEACHER_GRADE_CREATED", "StudyGroup",
+                request.groupId(), "Student " + request.studentId() + "; " + request.title());
     }
 
     private Teacher teacher(Long centerId, Long userId) {
