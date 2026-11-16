@@ -16,7 +16,7 @@ public class TenantRlsContext {
         if (centerId == null) {
             throw new IllegalArgumentException("Tenant center ID is required");
         }
-        setLocal("app.current_center_id", centerId);
+        setLocal("app.current_center_id", centerId.toString());
     }
 
     /**
@@ -27,17 +27,27 @@ public class TenantRlsContext {
         if (userId == null) {
             throw new IllegalArgumentException("Authenticated user ID is required");
         }
-        setLocal("app.current_user_id", userId);
+        setLocal("app.current_user_id", userId.toString());
     }
 
-    private void setLocal(String setting, Long value) {
+    /**
+     * Restricts pre-authentication account lookup to the email being verified.
+     */
+    public void applyUserEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("User email is required");
+        }
+        setLocal("app.current_user_email", email);
+    }
+
+    private void setLocal(String setting, String value) {
         jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
             if (!"PostgreSQL".equalsIgnoreCase(connection.getMetaData().getDatabaseProductName())) {
                 return null;
             }
             try (PreparedStatement statement = connection.prepareStatement(
                     "select set_config('" + setting + "', ?, true)")) {
-                statement.setString(1, value.toString());
+                statement.setString(1, value);
                 statement.execute();
             }
             return null;
