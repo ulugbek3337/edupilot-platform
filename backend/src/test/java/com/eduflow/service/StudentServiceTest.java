@@ -9,6 +9,8 @@ import com.eduflow.entity.User;
 import com.eduflow.exception.EduFlowException;
 import com.eduflow.repository.CenterRepository;
 import com.eduflow.repository.RefreshTokenRepository;
+import com.eduflow.repository.GroupEnrollmentRepository;
+import com.eduflow.repository.ParentStudentLinkRepository;
 import com.eduflow.repository.StudentRepository;
 import com.eduflow.security.TenantRlsContext;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,12 @@ class StudentServiceTest {
 
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
+
+    @Mock
+    private GroupEnrollmentRepository groupEnrollments;
+
+    @Mock
+    private ParentStudentLinkRepository parentLinks;
 
     @Mock
     private TenantRlsContext tenantRlsContext;
@@ -86,6 +94,8 @@ class StudentServiceTest {
         assertEquals(StudentStatus.INACTIVE, student.getStatus());
         assertFalse(user.isEnabled());
         verify(refreshTokenRepository).deleteByUserId(700L);
+        verify(groupEnrollments).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L);
+        verify(parentLinks).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 1L);
     }
 
     @Test
@@ -99,6 +109,8 @@ class StudentServiceTest {
 
         assertEquals(StudentStatus.INACTIVE, student.getStatus());
         verifyNoInteractions(refreshTokenRepository);
+        verify(groupEnrollments).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 2L);
+        verify(parentLinks).findAllByCenter_IdAndStudent_IdAndActiveTrue(10L, 2L);
     }
 
     @Test
