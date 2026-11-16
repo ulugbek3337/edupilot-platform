@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Optional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
@@ -79,7 +80,14 @@ public class AuthService {
 
         // Lock the persisted token row so two simultaneous refresh requests
         // cannot both rotate the same refresh token successfully.
-        RefreshToken refreshToken = refreshTokenRepository.findByTokenForUpdate(hashRefreshToken(token))
+        // New rows store SHA-256 digests. The raw-token fallback is temporary
+        // compatibility for sessions created before this security upgrade.
+        Optional<RefreshToken> persistedToken = refreshTokenRepository
+                .findByTokenForUpdate(hashRefreshToken(token));
+        if (persistedToken.isEmpty()) {
+            persistedToken = refreshTokenRepository.findByTokenForUpdate(token);
+        }
+        RefreshToken refreshToken = persistedToken
                 .orElseThrow(() -> new EduFlowException(401, "auth.refresh.invalid"));
 
         Instant now = Instant.now();
