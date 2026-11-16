@@ -46,6 +46,10 @@ class ParentPortalIntegrationTest {
    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
   mvc.perform(get("/api/v1/audit-logs").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()))
    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(4));
+  mvc.perform(get("/api/v1/audit-logs").param("action","PARENT_LINK_CREATED").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].action").value("PARENT_LINK_CREATED"));
+  mvc.perform(get("/api/v1/audit-logs").param("from","2026-11-17T00:00:00Z").param("to","2026-11-16T00:00:00Z").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()))
+   .andExpect(status().isBadRequest());
   mvc.perform(get("/api/v1/audit-logs").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
    .andExpect(status().isForbidden());
  }
