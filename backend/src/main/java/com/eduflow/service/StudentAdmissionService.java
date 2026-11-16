@@ -58,9 +58,11 @@ public class StudentAdmissionService {
         user.setMustChangePassword(true);
         user = users.save(user);
 
+        // The tenant- and role-aware foreign key requires the membership to exist
+        // before the student account is attached to the student record.
+        memberships.save(new CenterMembership(center, user, Role.STUDENT));
         student.setUser(user);
         students.save(student);
-        memberships.save(new CenterMembership(center, user, Role.STUDENT));
         enrollments.save(new GroupEnrollment(center, group, student));
 
         String teacherName = group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName();
