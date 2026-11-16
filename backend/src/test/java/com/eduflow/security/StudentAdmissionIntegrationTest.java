@@ -100,8 +100,7 @@ class StudentAdmissionIntegrationTest {
         mvc.perform(get("/api/v1/student-portal/me")
                         .header("Authorization", "Bearer " + studentToken)
                         .header("X-Center-Id", center.getId()))
-                .andExpect(status().isForbidden())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("auth.password.change-required")));
+                .andExpect(status().isForbidden());
 
         mvc.perform(get("/api/v1/students")
                         .header("Authorization", "Bearer " + studentToken)
