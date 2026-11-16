@@ -8,6 +8,7 @@ import com.eduflow.security.AuthenticatedUser;
 import com.eduflow.security.CenterMembershipService;
 import com.eduflow.security.CurrentCenterContext;
 import com.eduflow.service.TeacherPortalService;
+import com.eduflow.service.AuditLogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@ import java.util.List;
 public class TeacherPortalController {
     private final TeacherPortalService portal;
     private final CenterMembershipService memberships;
+    private final AuditLogService audit;
 
     private Long center(AuthenticatedUser user) {
         Long centerId = CurrentCenterContext.get();
@@ -60,14 +62,20 @@ public class TeacherPortalController {
     @PostMapping("/attendance")
     public org.springframework.http.ResponseEntity<Void> markAttendance(@AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody AttendanceRequest request) {
-        portal.markAttendance(center(user), user.id(), request);
+        Long centerId = center(user);
+        portal.markAttendance(centerId, user.id(), request);
+        audit.record(centerId, user.id(), "TEACHER_ATTENDANCE_MARKED", "Lesson",
+                request.lessonId(), "Student " + request.studentId());
         return org.springframework.http.ResponseEntity.noContent().build();
     }
 
     @PostMapping("/grades")
     public org.springframework.http.ResponseEntity<Void> addGrade(@AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody GradeRequest request) {
-        portal.addGrade(center(user), user.id(), request);
+        Long centerId = center(user);
+        portal.addGrade(centerId, user.id(), request);
+        audit.record(centerId, user.id(), "TEACHER_GRADE_CREATED", "StudyGroup",
+                request.groupId(), "Student " + request.studentId() + "; " + request.title());
         return org.springframework.http.ResponseEntity.noContent().build();
     }
 }
