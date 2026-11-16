@@ -4,6 +4,7 @@ import com.eduflow.entity.CenterMembership;
 import com.eduflow.entity.CenterStatus;
 import com.eduflow.entity.MembershipStatus;
 import com.eduflow.entity.Role;
+import com.eduflow.entity.UserStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -17,8 +18,8 @@ public interface CenterMembershipRepository extends JpaRepository<CenterMembersh
     boolean existsByCenterIdAndUserIdAndRole(Long centerId, Long userId, Role role);
 
     @EntityGraph(attributePaths = {"center", "user"})
-    List<CenterMembership> findAllByCenter_IdAndRoleAndStatusAndUser_EnabledTrueOrderByUser_LastNameAsc(
-            Long centerId, Role role, MembershipStatus membershipStatus
+    List<CenterMembership> findAllByCenter_IdAndRoleAndStatusAndUser_EnabledTrueAndUser_StatusOrderByUser_LastNameAsc(
+            Long centerId, Role role, MembershipStatus membershipStatus, UserStatus userStatus
     );
 
     @EntityGraph(attributePaths = "center")
