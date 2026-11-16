@@ -247,4 +247,39 @@ class PostgresTenantRlsIntegrationTest {
    return null;
   }));
  }
+
+ @Test void applicationDatabaseRoleCannotBypassRowLevelSecurity() {
+  Boolean bypass=admin.queryForObject("SELECT rolbypassrls OR rolsuper FROM pg_roles WHERE rolname='edupilot_app'",Boolean.class);
+  assertEquals(Boolean.FALSE,bypass,"Application DB role must not be superuser or BYPASSRLS.");
+ }
+ @Test void updateCannotReadOrModifyAnotherTenantsRows() {
+  Integer changed=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.update("UPDATE students SET first_name='Tampered' WHERE center_id=202");
+  });
+  assertEquals(0,changed);
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("UPDATE students SET center_id=202 WHERE center_id=101 AND student_number='S-101'");
+   return null;
+  }));
+ }
+ @Test void deleteCannotAffectAnotherTenantsRows() {
+  Integer deleted=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.update("DELETE FROM students WHERE center_id=202");
+  });
+  assertEquals(0,deleted);
+  Integer stillThere=admin.queryForObject("SELECT COUNT(*) FROM students WHERE center_id=202 AND student_number='S-202'",Integer.class);
+  assertEquals(1,stillThere);
+ }
+ @Test void tenantContextDoesNotLeakAcrossPooledTransactions() {
+  Integer first=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.queryForObject("SELECT COUNT(*) FROM students",Integer.class);
+  });
+  Integer second=appTransaction.execute(status->app.queryForObject("SELECT COUNT(*) FROM students",Integer.class));
+  assertEquals(1,first);
+  assertEquals(0,second,"SET LOCAL tenant context must be cleared at transaction completion.");
+ }
 }
