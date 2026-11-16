@@ -6,6 +6,7 @@ import com.eduflow.entity.CenterStatus;
 import com.eduflow.entity.MembershipStatus;
 import com.eduflow.entity.Role;
 import com.eduflow.entity.User;
+import com.eduflow.entity.UserStatus;
 import com.eduflow.repository.CenterMembershipRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,10 +33,13 @@ class CenterMembershipServiceTest {
     void activeMembershipInActiveCenterIsAccepted() {
         User user = mock(User.class);
         when(user.getId()).thenReturn(7L);
+        when(user.isEnabled()).thenReturn(true);
+        when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
         Center center = mock(Center.class);
         when(center.getStatus()).thenReturn(CenterStatus.ACTIVE);
         CenterMembership membership = mock(CenterMembership.class);
         when(membership.getStatus()).thenReturn(MembershipStatus.ACTIVE);
+        when(membership.getUser()).thenReturn(user);
         when(membership.getCenter()).thenReturn(center);
         when(membership.getRole()).thenReturn(Role.CENTER_ADMIN);
         when(membershipRepository.findByCenterIdAndUserId(12L, 7L)).thenReturn(Optional.of(membership));
@@ -84,6 +88,25 @@ class CenterMembershipServiceTest {
         when(membershipRepository.findByCenterIdAndUserId(12L, 7L)).thenReturn(Optional.of(membership));
 
         assertDoesNotThrow(() -> membershipService.assertRole(user, 12L, Role.TEACHER));
+        assertThrows(AccessDeniedException.class,
+                () -> membershipService.assertRole(user, 12L, Role.CENTER_ADMIN));
+    }
+
+    @Test
+    void lockedUserIsRejectedEvenWhenMembershipAndCenterAreActive() {
+        User user = mock(User.class);
+        when(user.getId()).thenReturn(7L);
+        when(user.isEnabled()).thenReturn(true);
+        when(user.getStatus()).thenReturn(UserStatus.LOCKED);
+        Center center = mock(Center.class);
+        when(center.getStatus()).thenReturn(CenterStatus.ACTIVE);
+        CenterMembership membership = mock(CenterMembership.class);
+        when(membership.getStatus()).thenReturn(MembershipStatus.ACTIVE);
+        when(membership.getUser()).thenReturn(user);
+        when(membership.getCenter()).thenReturn(center);
+        when(membershipRepository.findByCenterIdAndUserId(12L, 7L)).thenReturn(Optional.of(membership));
+
+        assertFalse(membershipService.isActiveMember(7L, 12L));
         assertThrows(AccessDeniedException.class,
                 () -> membershipService.assertRole(user, 12L, Role.CENTER_ADMIN));
     }
