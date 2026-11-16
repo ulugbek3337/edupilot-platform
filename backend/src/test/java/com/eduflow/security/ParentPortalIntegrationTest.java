@@ -19,6 +19,10 @@ class ParentPortalIntegrationTest {
   String adminToken=jwt.generateToken(admin,center.getId());String parentToken=jwt.generateToken(parent,center.getId());
   mvc.perform(post("/api/v1/parents/links").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"parentUserId\":"+parent.getId()+",\"studentId\":"+student.getId()+"}"))
    .andExpect(status().isCreated());
+  mvc.perform(get("/api/v1/parents/accounts").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].userId").value(parent.getId())).andExpect(jsonPath("$[0].email").value("parent-it-user@example.test"));
+  mvc.perform(get("/api/v1/parents/accounts").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
+   .andExpect(status().isForbidden());
   mvc.perform(post("/api/v1/group-enrollments").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON)
     .content("{\"groupId\":"+group.getId()+",\"studentId\":"+student.getId()+"}"))
    .andExpect(status().isCreated());
