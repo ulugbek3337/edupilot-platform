@@ -52,6 +52,7 @@ public class StudentAdmissionService {
             throw new EduFlowException(HttpStatus.CONFLICT, "student.login.exists");
         }
         String temporaryPassword = generatePassword();
+        tenantRlsContext.applyUserEmail(login);
         User user = new User(login, passwordEncoder.encode(temporaryPassword),
                 student.getFirstName(), student.getLastName());
         user.setStudentAccount(true);
