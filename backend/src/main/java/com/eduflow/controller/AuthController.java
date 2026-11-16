@@ -6,8 +6,12 @@ import com.eduflow.dto.AuthDtos.LanguageUpdateRequest;
 import com.eduflow.dto.AuthDtos.ChangePasswordRequest;
 import com.eduflow.dto.AuthDtos.RefreshRequest;
 import com.eduflow.dto.AuthDtos.RegisterRequest;
-import com.eduflow.dto.AuthDtos.UserSummary;\nimport com.eduflow.dto.AuthDtos.CenterRole;\nimport com.eduflow.entity.CenterStatus;\nimport com.eduflow.entity.MembershipStatus;\nimport com.eduflow.repository.CenterMembershipRepository;
+import com.eduflow.dto.AuthDtos.UserSummary;
+import com.eduflow.dto.AuthDtos.CenterRole;
+import com.eduflow.entity.CenterStatus;
+import com.eduflow.entity.MembershipStatus;
 import com.eduflow.entity.User;
+import com.eduflow.repository.CenterMembershipRepository;
 import com.eduflow.security.AuthenticatedUser;
 import com.eduflow.service.AuthService;
 import jakarta.validation.Valid;
@@ -21,7 +25,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;\n    private final CenterMembershipRepository memberships;
+    private final AuthService authService;
+    private final CenterMembershipRepository memberships;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -61,13 +66,14 @@ public class AuthController {
     }
 
     private UserSummary toUserSummary(User user) {
+        var activeMemberships = memberships.findAllByUser_IdAndStatusAndCenter_Status(
+                user.getId(), MembershipStatus.ACTIVE, CenterStatus.ACTIVE);
         return new UserSummary(
-                user.getId(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getLanguagePreference().getCode(),
-                user.isMustChangePassword()
+                user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(),
+                user.getLanguagePreference().getCode(), user.isMustChangePassword(),
+                activeMemberships.stream()
+                        .map(m -> new CenterRole(m.getCenter().getId(), m.getRole().name()))
+                        .toList()
         );
     }
 }
