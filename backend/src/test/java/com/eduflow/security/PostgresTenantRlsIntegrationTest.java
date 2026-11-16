@@ -313,6 +313,17 @@ class PostgresTenantRlsIntegrationTest {
   }));
  }
 
+ @Test void membershipDeleteCannotAffectAnotherCenter() {
+  Integer deleted=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.update("DELETE FROM center_memberships WHERE center_id=202");
+  });
+  assertEquals(0,deleted);
+  Integer stillThere=admin.queryForObject(
+   "SELECT COUNT(*) FROM center_memberships WHERE center_id=202 AND user_id=602",Integer.class);
+  assertEquals(1,stillThere);
+ }
+
  @Test void refreshTokensAreHiddenWithoutAuthenticatedUserContext() {
   Integer visible=app.queryForObject("SELECT COUNT(*) FROM refresh_tokens",Integer.class);
   assertEquals(0,visible);
@@ -335,6 +346,26 @@ class PostgresTenantRlsIntegrationTest {
   assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
    app.update("INSERT INTO refresh_tokens(token,user_id,revoked,expires_at) VALUES ('" + "c".repeat(64) + "',602,FALSE,CURRENT_TIMESTAMP + INTERVAL '1 day')");
+   return null;
+  }));
+ }
+
+ @Test void refreshTokenUpdatesAndDeletesCannotTouchAnotherUser() {
+  Integer updated=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.update("UPDATE refresh_tokens SET revoked=TRUE WHERE user_id=602");
+  });
+  Integer deleted=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.update("DELETE FROM refresh_tokens WHERE user_id=602");
+  });
+  assertEquals(0,updated);
+  assertEquals(0,deleted);
+  Integer stillThere=admin.queryForObject("SELECT COUNT(*) FROM refresh_tokens WHERE user_id=602",Integer.class);
+  assertEquals(1,stillThere);
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   app.update("UPDATE refresh_tokens SET user_id=602 WHERE user_id=601");
    return null;
   }));
  }
