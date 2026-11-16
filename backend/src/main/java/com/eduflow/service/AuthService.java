@@ -24,6 +24,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
@@ -76,7 +79,7 @@ public class AuthService {
 
         // Lock the persisted token row so two simultaneous refresh requests
         // cannot both rotate the same refresh token successfully.
-        RefreshToken refreshToken = refreshTokenRepository.findByTokenForUpdate(token)
+        RefreshToken refreshToken = refreshTokenRepository.findByTokenForUpdate(hashRefreshToken(token))
                 .orElseThrow(() -> new EduFlowException(401, "auth.refresh.invalid"));
 
         Instant now = Instant.now();
@@ -138,12 +141,22 @@ public class AuthService {
         return userRepository.save(user);
     }
 
+    static String hashRefreshToken(String token) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
+    }
+
     private AuthResponse buildAuthResponse(User user, Long centerId) {
         String accessToken = jwtService.generateToken(user, centerId);
         String refreshTokenValue = jwtService.generateRefreshToken(user);
 
         RefreshToken refreshToken = new RefreshToken(
-                refreshTokenValue,
+                hashRefreshToken(refreshTokenValue),
                 user,
                 Instant.now().plus(7, ChronoUnit.DAYS)
         );
