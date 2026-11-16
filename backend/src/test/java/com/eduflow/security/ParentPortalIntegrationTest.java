@@ -11,6 +11,7 @@ class ParentPortalIntegrationTest {
   Center center=centers.save(new Center("Parent Test Center","parent-test-center",CenterStatus.ACTIVE));
   memberships.save(new CenterMembership(center,admin,Role.CENTER_ADMIN));memberships.save(new CenterMembership(center,parent,Role.PARENT));
   Student student=students.save(new Student(center,"P-ST-01","Aziza","Karimova",null,null,null));
+  Student unrelatedStudent=students.save(new Student(center,"P-ST-02","Bekzod","Karimov",null,null,null));
   Teacher teacher=teachers.save(new Teacher(center,"P-T-01","Dilshod","Olimov",null,null,null));
   Course course=courses.save(new Course(center,"P-C-01","Matematika",null));
   StudyGroup group=groups.save(new StudyGroup(center,course,teacher,"P-G-01","5-A",null,null));
@@ -33,6 +34,10 @@ class ParentPortalIntegrationTest {
    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
   mvc.perform(get("/api/v1/parents/children/"+student.getId()+"/attendance").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+  mvc.perform(get("/api/v1/parents/children/"+unrelatedStudent.getId()+"/grades").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
+   .andExpect(status().isNotFound());
+  mvc.perform(get("/api/v1/parents/children/"+unrelatedStudent.getId()+"/attendance").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
+   .andExpect(status().isNotFound());
   mvc.perform(get("/api/v1/notifications").header("Authorization","Bearer "+parentToken).header("X-Center-Id",center.getId()))
    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
   mvc.perform(get("/api/v1/audit-logs").header("Authorization","Bearer "+adminToken).header("X-Center-Id",center.getId()))
