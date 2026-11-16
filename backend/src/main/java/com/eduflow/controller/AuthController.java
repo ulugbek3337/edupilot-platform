@@ -8,11 +8,9 @@ import com.eduflow.dto.AuthDtos.RefreshRequest;
 import com.eduflow.dto.AuthDtos.RegisterRequest;
 import com.eduflow.dto.AuthDtos.UserSummary;
 import com.eduflow.dto.AuthDtos.CenterRole;
-import com.eduflow.entity.CenterStatus;
-import com.eduflow.entity.MembershipStatus;
 import com.eduflow.entity.User;
-import com.eduflow.repository.CenterMembershipRepository;
 import com.eduflow.security.AuthenticatedUser;
+import com.eduflow.security.CenterMembershipService;
 import com.eduflow.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final CenterMembershipRepository memberships;
+    private final CenterMembershipService memberships;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -66,8 +64,7 @@ public class AuthController {
     }
 
     private UserSummary toUserSummary(User user) {
-        var activeMemberships = memberships.findAllByUser_IdAndStatusAndCenter_Status(
-                user.getId(), MembershipStatus.ACTIVE, CenterStatus.ACTIVE);
+        var activeMemberships = memberships.findActiveMembershipsForUser(user.getId());
         return new UserSummary(
                 user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(),
                 user.getLanguagePreference().getCode(), user.isMustChangePassword(),
