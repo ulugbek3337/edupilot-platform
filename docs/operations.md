@@ -12,7 +12,7 @@ For an existing database, Docker initialization scripts do not rerun. Schedule a
 CREATE ROLE edupilot_migrator LOGIN PASSWORD 'REPLACE_WITH_A_UNIQUE_SECRET' NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
 ALTER ROLE edupilot_app NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
 ALTER ROLE edupilot_migrator NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
-GRANT CONNECT ON DATABASE edupilot TO edupilot_migrator;
+GRANT CONNECT ON DATABASE edupilot TO edupilot_app, edupilot_migrator;
 GRANT USAGE, CREATE ON SCHEMA public TO edupilot_migrator;
 
 -- Run only after confirming edupilot_app owns only EduPilot application objects.
