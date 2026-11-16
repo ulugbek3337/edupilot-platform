@@ -47,6 +47,10 @@ public class Student {
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private User user;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StudentStatus status = StudentStatus.ACTIVE;

@@ -3,6 +3,7 @@ package com.eduflow.service;
 import com.eduflow.dto.AuthDtos.AuthResponse;
 import com.eduflow.dto.AuthDtos.LoginRequest;
 import com.eduflow.dto.AuthDtos.LanguageUpdateRequest;
+import com.eduflow.dto.AuthDtos.ChangePasswordRequest;
 import com.eduflow.dto.AuthDtos.RefreshRequest;
 import com.eduflow.dto.AuthDtos.RegisterRequest;
 import com.eduflow.entity.LanguagePreference;
@@ -112,8 +113,27 @@ public class AuthService {
     }
 
     @Transactional
+    public User changePassword(String email, ChangePasswordRequest request) {
+        User user = getCurrentUser(email);
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new EduFlowException(HttpStatus.BAD_REQUEST, "auth.password.current.invalid");
+        }
+        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new EduFlowException(HttpStatus.BAD_REQUEST, "auth.password.must-be-different");
+        }
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        user.setMustChangePassword(false);
+        User saved = userRepository.save(user);
+        refreshTokenRepository.deleteByUserId(user.getId());
+        return saved;
+    }
+
+    @Transactional
     public User updateLanguagePreference(String email, LanguageUpdateRequest request) {
         User user = getCurrentUser(email);
+        if (user.isStudentAccount()) {
+            throw new EduFlowException(HttpStatus.FORBIDDEN, "student.account.profile.read-only");
+        }
         user.setLanguagePreference(LanguagePreference.fromCode(request.language()));
         return userRepository.save(user);
     }
@@ -136,7 +156,8 @@ public class AuthService {
                 user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getLanguagePreference().getCode()
+                user.getLanguagePreference().getCode(),
+                user.isMustChangePassword()
         );
     }
 }

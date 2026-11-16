@@ -46,6 +46,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         if (jwtService.isTokenValid(token, userDetails)
                                 && userDetails.isEnabled()
                                 && userDetails.isAccountNonLocked()) {
+                            if (userDetails instanceof AuthenticatedUser authenticated
+                                    && authenticated.mustChangePassword()
+                                    && !isAllowedBeforePasswordChange(request)) {
+                                response.sendError(HttpServletResponse.SC_FORBIDDEN, "auth.password.change-required");
+                                return;
+                            }
                             Long centerId = resolveCenterId(request, token);
 
                             // A client-supplied tenant header is never trusted by itself.
@@ -83,6 +89,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } finally {
             CurrentCenterContext.clear();
         }
+    }
+
+    private boolean isAllowedBeforePasswordChange(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+        return ("GET".equals(method) && ("/api/v1/auth/me".equals(path) || "/api/v1/centers".equals(path)))
+                || ("POST".equals(method) && ("/api/v1/auth/change-password".equals(path)
+                || "/api/v1/auth/refresh".equals(path)));
     }
 
     private Long resolveCenterId(HttpServletRequest request, String token) {

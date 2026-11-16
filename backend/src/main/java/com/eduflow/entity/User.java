@@ -37,6 +37,12 @@ public class User {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = false;
+
+    @Column(name = "student_account", nullable = false)
+    private boolean studentAccount = false;
+
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 

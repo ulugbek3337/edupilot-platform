@@ -15,7 +15,8 @@ public record AuthenticatedUser(
         String password,
         Collection<? extends GrantedAuthority> authorities,
         boolean enabled,
-        boolean accountNonLocked
+        boolean accountNonLocked,
+        boolean mustChangePassword
 ) implements UserDetails {
 
     public static AuthenticatedUser from(User user) {
@@ -26,7 +27,8 @@ public record AuthenticatedUser(
                 user.getPasswordHash(),
                 List.of(new SimpleGrantedAuthority("ROLE_USER")),
                 user.isEnabled() && status == UserStatus.ACTIVE,
-                status != UserStatus.LOCKED
+                status != UserStatus.LOCKED,
+                user.isMustChangePassword()
         );
     }
 
