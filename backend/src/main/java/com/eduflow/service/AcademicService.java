@@ -5,7 +5,7 @@ import java.util.*;
 @Service @RequiredArgsConstructor
 public class AcademicService {
  private final CenterRepository centers; private final TeacherRepository teachers; private final CourseRepository courses; private final StudyGroupRepository groups; private final LessonRepository lessons; private final StudentRepository students; private final AttendanceRepository attendance; private final GradeRepository grades; private final TenantRlsContext tenantRlsContext; private final NotificationService notificationService; private final GroupEnrollmentRepository enrollments; private final CenterMembershipRepository memberships; private final RefreshTokenRepository refreshTokens;
- private Center center(Long id){if(id==null)throw fail(HttpStatus.BAD_REQUEST,"tenant.context.required");Center c=centers.findById(id).orElseThrow(()->fail(HttpStatus.NOT_FOUND,"center.not-found"));if(c.getStatus()!=CenterStatus.ACTIVE)throw fail(HttpStatus.FORBIDDEN,"tenant.center.inactive");tenantRlsContext.apply(id);return c;}
+ private Center center(Long id){if(id==null)throw fail(HttpStatus.BAD_REQUEST,"tenant.context.required");tenantRlsContext.apply(id);Center c=centers.findById(id).orElseThrow(()->fail(HttpStatus.NOT_FOUND,"center.not-found"));if(c.getStatus()!=CenterStatus.ACTIVE)throw fail(HttpStatus.FORBIDDEN,"tenant.center.inactive");return c;}
  private EduFlowException fail(HttpStatus s,String code){return new EduFlowException(s,code);}
  private String clean(String s){return s==null||s.isBlank()?null:s.trim();}
  @Transactional(readOnly=true) public List<Teacher> teachers(Long c){center(c);return teachers.findAllByCenter_IdAndStatusOrderByLastNameAscFirstNameAsc(c,"ACTIVE");}
