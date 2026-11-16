@@ -90,6 +90,6 @@ public class StudentController {
         return new StudentResponse(student.getId(), student.getStudentNumber(),
                 student.getFirstName(), student.getLastName(), student.getEmail(),
                 student.getPhone(), student.getDateOfBirth(), student.getStatus().name(),
-                student.getVersion(), student.getCreatedAt(), student.getUpdatedAt());
+                student.getVersion(), student.getCreatedAt(), student.getUpdatedAt(), student.getUser() != null);
     }
 }
