@@ -3,32 +3,70 @@ on:
   workflow_dispatch:
     inputs:
       base_url:
-        description: Staging base URL (for example https://staging.example.com)
+        description: HTTPS base URL of the staging deployment
         required: true
         type: string
+      profile:
+        description: Select a bounded load profile
+        required: true
+        default: baseline
+        type: choice
+        options:
+          - baseline
+          - stress
 permissions:
   contents: read
+concurrency:
+  group: edupilot-staging-load-test
+  cancel-in-progress: false
 jobs:
   k6:
     name: Run authenticated academic API load test
     runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Validate required secrets
+      - name: Validate staging target and test identities
         env:
+          BASE_URL: ${{ inputs.base_url }}
           ACCESS_TOKEN: ${{ secrets.STAGING_LOAD_TEST_ACCESS_TOKEN }}
           CENTER_ID: ${{ vars.STAGING_LOAD_TEST_CENTER_ID }}
+          OTHER_CENTER_ID: ${{ vars.STAGING_LOAD_TEST_OTHER_CENTER_ID }}
         run: |
-          test -n "$ACCESS_TOKEN" || { echo "Missing STAGING_LOAD_TEST_ACCESS_TOKEN secret"; exit 1; }
-          test -n "$CENTER_ID" || { echo "Missing STAGING_LOAD_TEST_CENTER_ID variable"; exit 1; }
+          test -n "$ACCESS_TOKEN" || { echo "Missing STAGING_LOAD_TEST_ACCESS_TOKEN in the staging environment"; exit 1; }
+          test -n "$CENTER_ID" || { echo "Missing STAGING_LOAD_TEST_CENTER_ID in the staging environment"; exit 1; }
+          test -n "$OTHER_CENTER_ID" || { echo "Missing STAGING_LOAD_TEST_OTHER_CENTER_ID in the staging environment"; exit 1; }
+          test "$CENTER_ID" != "$OTHER_CENTER_ID" || { echo "The two center IDs must be different"; exit 1; }
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlparse
+          value = os.environ["BASE_URL"]
+          parsed = urlparse(value)
+          if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
+              raise SystemExit("base_url must be a valid HTTPS staging URL without credentials, query, or fragment")
+          if parsed.path not in ("", "/"):
+              raise SystemExit("base_url must contain only the origin; do not include an API path")
+          PY
       - name: Run k6 against staging
         env:
           BASE_URL: ${{ inputs.base_url }}
           ACCESS_TOKEN: ${{ secrets.STAGING_LOAD_TEST_ACCESS_TOKEN }}
           CENTER_ID: ${{ vars.STAGING_LOAD_TEST_CENTER_ID }}
+          OTHER_CENTER_ID: ${{ vars.STAGING_LOAD_TEST_OTHER_CENTER_ID }}
+          LOAD_PROFILE: ${{ inputs.profile }}
         run: |
+          mkdir -p "$RUNNER_TEMP/k6-results"
           docker run --rm \
-            -e BASE_URL -e ACCESS_TOKEN -e CENTER_ID \
-            -v "$PWD:/work:ro" -w /work \
-            grafana/k6:0.54.0 run load-tests/k6-academic.js
+            -e BASE_URL -e ACCESS_TOKEN -e CENTER_ID -e OTHER_CENTER_ID -e LOAD_PROFILE \
+            -v "$PWD:/work:ro" -v "$RUNNER_TEMP/k6-results:/results" -w /work \
+            grafana/k6:0.54.0 run --summary-export=/results/summary.json load-tests/k6-academic.js
+      - name: Upload load test summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edupilot-k6-summary
+          path: ${{ runner.temp }}/k6-results/summary.json
+          if-no-files-found: ignore
+          retention-days: 14
