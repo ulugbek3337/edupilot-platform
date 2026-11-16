@@ -65,7 +65,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
                 redis.expire(key, Duration.ofSeconds(windowSeconds));
             }
             if (count > limit) {
-                response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+                response.setStatus(429);
                 response.setHeader("Retry-After", Long.toString(windowSeconds));
                 response.setContentType("application/json");
                 response.getWriter().write(
