@@ -49,6 +49,7 @@ class TeacherPortalIntegrationTest {
     @Autowired private GroupEnrollmentRepository enrollments;
     @Autowired private LessonRepository lessons;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private AttendanceRepository attendance;
     @Autowired private JwtService jwt;
 
     @Test
@@ -156,6 +157,20 @@ class TeacherPortalIntegrationTest {
                                 {"lessonId":%d,"studentId":%d,"status":"PRESENT","note":"Test"}
                                 """.formatted(lessons.findAllByCenter_IdAndGroup_IdOrderByStartsAtAsc(center.getId(), assignedGroup.getId()).get(0).getId(), assignedStudent.getId())))
                 .andExpect(status().isNoContent());
+        Long assignedLessonId = lessons.findAllByCenter_IdAndGroup_IdOrderByStartsAtAsc(center.getId(), assignedGroup.getId()).get(0).getId();
+        mvc.perform(post("/api/v1/teacher-portal/attendance")
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-Center-Id", center.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"lessonId":%d,"studentId":%d,"status":"LATE","note":"Updated"}
+                                """.formatted(assignedLessonId, assignedStudent.getId())))
+                .andExpect(status().isNoContent());
+        var attendanceRows = attendance.findAllByCenter_IdAndLesson_IdOrderByStudent_LastNameAsc(center.getId(), assignedLessonId);
+        assertEquals(1, attendanceRows.size(), "Attendance updates must not create duplicate lesson/student records");
+        assertEquals("LATE", attendanceRows.get(0).getStatus());
+        assertEquals("Updated", attendanceRows.get(0).getNote());
+
         mvc.perform(post("/api/v1/teacher-portal/attendance")
                         .header("Authorization", "Bearer " + teacherToken)
                         .header("X-Center-Id", center.getId())
