@@ -27,7 +27,7 @@ Existing PostgreSQL volumes do not rerun Docker initialization scripts. Create t
 ## Implemented platform foundations
 - JWT authentication, refresh-token rotation, and center membership authorization
 - Multi-tenant Student, Teacher, Course, Group, Lesson, Attendance, and Grade APIs
-- PostgreSQL RLS for academic tenant data, center memberships, and user-owned refresh tokens (V6, V8, V10, V18 migrations)
+- PostgreSQL RLS for academic tenant data, center memberships, global user identities, center metadata, and user-owned refresh tokens (V6–V10, V18–V20 migrations)
 - Redis-backed rate limiting for authentication endpoints
 - Uzbek and Russian interface translations
 - Docker Compose infrastructure with a bootstrap role, a deployment-only migration owner (`BYPASSRLS`, non-superuser), and a restricted runtime role (`NOBYPASSRLS`, no table ownership)
