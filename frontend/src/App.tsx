@@ -100,7 +100,7 @@ export default function App() {
         setMustChangePassword(me.mustChangePassword);
         setUserMemberships(me.memberships ?? []);
       })
-      .catch(() => setMustChangePassword(false))
+      .catch(() => { setMustChangePassword(false); setUserMemberships([]); })
       .finally(() => setAuthChecked(true));
   }, [token]);
 
