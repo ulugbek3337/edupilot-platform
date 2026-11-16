@@ -50,7 +50,7 @@ class StudentTenantIsolationIntegrationTest {
 
     @Test
     @Transactional
-    void teacherCanCreateAndListStudentsOnlyInSelectedCenter() throws Exception {
+    void teacherCannotAccessCenterWideStudentDirectory() throws Exception {
         User teacher = activeUser("teacher-students@example.test");
         Center center = centerRepository.save(new Center("Teacher Center", "teacher-students", CenterStatus.ACTIVE));
         membershipRepository.save(new CenterMembership(center, teacher, Role.TEACHER));
@@ -63,16 +63,12 @@ class StudentTenantIsolationIntegrationTest {
                         .content("""
                                 {"studentNumber":"ST-001","firstName":"Ali","lastName":"Valiyev"}
                                 """))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.studentNumber").value("ST-001"))
-                .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .andExpect(status().isForbidden());
 
         mockMvc.perform(get("/api/v1/students")
                         .header("Authorization", "Bearer " + token)
                         .header("X-Center-Id", center.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].studentNumber").value("ST-001"));
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -91,7 +87,7 @@ class StudentTenantIsolationIntegrationTest {
         mockMvc.perform(get("/api/v1/students/" + foreignStudent.getId())
                         .header("Authorization", "Bearer " + token)
                         .header("X-Center-Id", ownCenter.getId()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden());
     }
 
     private User activeUser(String email) {
