@@ -93,6 +93,20 @@ class PostgresTenantRlsIntegrationTest {
   });
   assertEquals(0,foreignVisible);
  }
+ @Test void notificationRecipientMustBelongToTheSameCenter() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO notifications(center_id,recipient_user_id,type,title,message) VALUES (101,602,'GRADE','Invalid recipient','Cross-tenant')");
+   return null;
+  }));
+ }
+ @Test void notificationCannotBeCreatedForUserWithoutCenterMembership() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO notifications(center_id,recipient_user_id,type,title,message) VALUES (101,999,'GRADE','Invalid recipient','No membership')");
+   return null;
+  }));
+ }
  @Test void auditLogsAreRestrictedByTenantPolicy() {
   Integer visible=appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
