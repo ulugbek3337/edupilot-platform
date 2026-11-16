@@ -36,6 +36,8 @@ jobs:
       - name: Run Maven tests
         env:
           DB_PASSWORD: ci-only-not-a-production-secret
+          DB_MIGRATION_USERNAME: edupilot_migrator
+          DB_MIGRATION_PASSWORD: ci-only-migration-secret
           JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
         run: mvn --batch-mode --no-transfer-progress test
 
@@ -128,6 +130,8 @@ jobs:
           DB_NAME: edupilot_ci
           DB_USERNAME: edupilot_app
           DB_PASSWORD: ci-only-database-password
+          DB_MIGRATION_USERNAME: edupilot_migrator
+          DB_MIGRATION_PASSWORD: ci-only-migration-password
           POSTGRES_ADMIN_USER: edupilot_admin
           POSTGRES_ADMIN_PASSWORD: ci-only-admin-password
           REDIS_PASSWORD: ci-only-redis-password
