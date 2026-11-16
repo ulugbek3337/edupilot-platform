@@ -96,7 +96,15 @@ class StudentAdmissionIntegrationTest {
                 center.getId(), group.getId(), student.getId()));
         assertTrue(memberships.existsByCenterIdAndUserIdAndRole(center.getId(), studentUser.getId(), Role.STUDENT));
 
-        String studentToken = jwt.generateToken(studentUser, center.getId());
+        String loginResponse = mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"%s"}
+                                """.formatted(login, temporaryPassword)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mustChangePassword").value(true))
+                .andReturn().getResponse().getContentAsString();
+        String studentToken = mapper.readTree(loginResponse).get("accessToken").asText();
         mvc.perform(get("/api/v1/student-portal/me")
                         .header("Authorization", "Bearer " + studentToken)
                         .header("X-Center-Id", center.getId()))
