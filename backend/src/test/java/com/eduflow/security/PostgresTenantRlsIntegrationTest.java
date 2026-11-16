@@ -33,11 +33,14 @@ class PostgresTenantRlsIntegrationTest {
   admin.execute("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO edupilot_app");
   admin.update("INSERT INTO centers(id,name,slug,status) VALUES (101,'Center One','center-one','ACTIVE'),(202,'Center Two','center-two','ACTIVE')");
   admin.update("INSERT INTO students(center_id,student_number,first_name,last_name) VALUES (101,'S-101','One','Student'),(202,'S-202','Two','Student')");
-  admin.update("INSERT INTO users(id,email,password_hash,first_name,last_name) VALUES (601,'parent-one@example.test','not-a-real-hash','Parent','One'),(602,'parent-two@example.test','not-a-real-hash','Parent','Two')");
+  admin.update("INSERT INTO users(id,email,password_hash,first_name,last_name) VALUES (601,'parent-one@example.test','not-a-real-hash','Parent','One'),(602,'parent-two@example.test','not-a-real-hash','Parent','Two'),(603,'student-one@example.test','not-a-real-hash','Student','One'),(604,'student-two@example.test','not-a-real-hash','Student','Two'),(605,'teacher-one@example.test','not-a-real-hash','Teacher','One'),(606,'teacher-two@example.test','not-a-real-hash','Teacher','Two'),(607,'wrong-role@example.test','not-a-real-hash','Wrong','Role')");
+  admin.update("INSERT INTO center_memberships(center_id,user_id,role) VALUES (101,601,'PARENT'),(202,602,'PARENT'),(101,603,'STUDENT'),(202,604,'STUDENT'),(101,605,'TEACHER'),(202,606,'TEACHER'),(101,607,'PARENT')");
+  admin.update("UPDATE students SET user_id=603 WHERE center_id=101 AND student_number='S-101'");
+  admin.update("UPDATE students SET user_id=604 WHERE center_id=202 AND student_number='S-202'");
   admin.update("INSERT INTO parent_student_links(center_id,parent_user_id,student_id) VALUES (101,601,1),(202,602,2)");
   admin.update("INSERT INTO notifications(center_id,recipient_user_id,type,title,message) VALUES (101,601,'GRADE','Grade update','Center one notification'),(202,602,'GRADE','Grade update','Center two notification')");
   admin.update("INSERT INTO audit_logs(center_id,action,entity_type,details) VALUES (101,'LOGIN','User','center one'),(202,'LOGIN','User','center two')");
-  admin.update("INSERT INTO teachers(id,center_id,teacher_code,first_name,last_name) VALUES (301,101,'T-101','One','Teacher'),(302,202,'T-202','Two','Teacher')");
+  admin.update("INSERT INTO teachers(id,center_id,teacher_code,first_name,last_name,user_id) VALUES (301,101,'T-101','One','Teacher',605),(302,202,'T-202','Two','Teacher',606)");
   admin.update("INSERT INTO courses(id,center_id,course_code,name) VALUES (401,101,'C-101','One Course'),(402,202,'C-202','Two Course')");
   admin.update("INSERT INTO study_groups(id,center_id,course_id,teacher_id,group_code,name) VALUES (501,101,401,301,'G-101','One Group'),(502,202,402,302,'G-202','Two Group')");
   admin.update("INSERT INTO lessons(id,center_id,group_id,title,starts_at,ends_at) VALUES (701,101,501,'One Lesson','2026-01-01 10:00:00','2026-01-01 11:00:00'),(702,202,502,'Two Lesson','2026-01-01 10:00:00','2026-01-01 11:00:00')");
@@ -178,6 +181,48 @@ class PostgresTenantRlsIntegrationTest {
   assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
    app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
    app.update("INSERT INTO grade_records(center_id,student_id,group_id,title,score,max_score) VALUES (101,1,502,'Invalid',8,10)");
+   return null;
+  }));
+ }
+
+ @Test void studentAccountMustBelongToSameCenterAndHaveStudentRole() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("UPDATE students SET user_id=604 WHERE center_id=101 AND id=1");
+   return null;
+  }));
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("UPDATE students SET user_id=607 WHERE center_id=101 AND id=1");
+   return null;
+  }));
+ }
+ @Test void teacherAccountMustBelongToSameCenterAndHaveTeacherRole() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("UPDATE teachers SET user_id=606 WHERE center_id=101 AND id=301");
+   return null;
+  }));
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("UPDATE teachers SET user_id=607 WHERE center_id=101 AND id=301");
+   return null;
+  }));
+ }
+ @Test void parentLinkMustUseSameCenterParentMembershipWithParentRole() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO parent_student_links(center_id,parent_user_id,student_id) VALUES (101,602,1)");
+   return null;
+  }));
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO parent_student_links(center_id,parent_user_id,student_id) VALUES (101,603,1)");
+   return null;
+  }));
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO parent_student_links(center_id,parent_user_id,student_id) VALUES (101,601,2)");
    return null;
   }));
  }
