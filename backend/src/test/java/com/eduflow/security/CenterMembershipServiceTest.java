@@ -104,12 +104,9 @@ class CenterMembershipServiceTest {
         when(user.getId()).thenReturn(7L);
         when(user.isEnabled()).thenReturn(true);
         when(user.getStatus()).thenReturn(UserStatus.LOCKED);
-        Center center = mock(Center.class);
-        when(center.getStatus()).thenReturn(CenterStatus.ACTIVE);
         CenterMembership membership = mock(CenterMembership.class);
         when(membership.getStatus()).thenReturn(MembershipStatus.ACTIVE);
         when(membership.getUser()).thenReturn(user);
-        when(membership.getCenter()).thenReturn(center);
         when(membershipRepository.findByCenterIdAndUserId(12L, 7L)).thenReturn(Optional.of(membership));
 
         assertFalse(membershipService.isActiveMember(7L, 12L));
