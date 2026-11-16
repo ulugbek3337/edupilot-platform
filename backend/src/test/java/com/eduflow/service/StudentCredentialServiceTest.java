@@ -35,7 +35,9 @@ class StudentCredentialServiceTest {
     void resetsOnlyOwnCenterStudentAndRequiresPasswordChange() {
         Center center = new Center("Alpha", "alpha", CenterStatus.ACTIVE);
         Student student = new Student(center, "S-001", "Ali", "Valiyev", null, null, null);
+        student.setId(5L);
         User user = new User("student-1-5@students.edupilot.local", "old-hash", "Ali", "Valiyev");
+        user.setId(9L);
         user.setStudentAccount(true);
         student.setUser(user);
         when(students.findByIdAndCenter_Id(5L, 1L)).thenReturn(Optional.of(student));
