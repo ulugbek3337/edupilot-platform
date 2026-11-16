@@ -6,7 +6,8 @@ if [[ $# -ne 1 ]]; then echo "Usage: DB_NAME=target DB_USERNAME=restore_user DB_
 : "${DB_PASSWORD:?Set DB_PASSWORD}"
 backup="$1"
 [[ -f "$backup" ]] || { echo "Backup file not found: $backup" >&2; exit 2; }
-if [[ -f "$backup.sha256" ]]; then sha256sum --check "$backup.sha256"; fi
+[[ -f "$backup.sha256" ]] || { echo "Checksum file is required: $backup.sha256" >&2; exit 2; }
+sha256sum --check "$backup.sha256"
 echo "WARNING: this operation replaces objects in database '$DB_NAME'."
 read -r -p "Type RESTORE to continue: " confirm
 [[ "$confirm" == "RESTORE" ]] || { echo "Restore cancelled."; exit 1; }
