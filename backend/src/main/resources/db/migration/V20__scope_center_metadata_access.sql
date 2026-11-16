@@ -16,6 +16,16 @@ SET created_by_user_id = (
 )
 WHERE center_row.created_by_user_id IS NULL;
 
+DO $
+BEGIN
+    IF EXISTS (SELECT 1 FROM centers WHERE created_by_user_id IS NULL) THEN
+        RAISE EXCEPTION 'V20 blocked: one or more centers have no membership owner; assign an authorized creator before enabling center RLS';
+    END IF;
+END $;
+
+ALTER TABLE centers
+    ALTER COLUMN created_by_user_id SET NOT NULL;
+
 ALTER TABLE centers
     ADD CONSTRAINT fk_centers_created_by_user
     FOREIGN KEY (created_by_user_id)
