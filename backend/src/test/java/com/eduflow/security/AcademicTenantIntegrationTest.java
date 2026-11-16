@@ -29,13 +29,13 @@ class AcademicTenantIntegrationTest {
   mvc.perform(get("/api/v1/teachers").header("Authorization","Bearer "+token).header("X-Center-Id",center.getId()))
    .andExpect(status().isOk());
   mvc.perform(post("/api/v1/teachers").header("Authorization","Bearer "+token).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON)
-   .content("{\\"teacherCode\\":\\"T-DENIED\\",\\"firstName\\":\\"No\\",\\"lastName\\":\\"Access\\"}"))
+   .content("{\"teacherCode\":\"T-DENIED\",\"firstName\":\"No\",\"lastName\":\"Access\"}"))
    .andExpect(status().isForbidden());
   mvc.perform(post("/api/v1/courses").header("Authorization","Bearer "+token).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON)
-   .content("{\\"courseCode\\":\\"C-DENIED\\",\\"name\\":\\"Forbidden course\\"}"))
+   .content("{\"courseCode\":\"C-DENIED\",\"name\":\"Forbidden course\"}"))
    .andExpect(status().isForbidden());
   mvc.perform(post("/api/v1/groups").header("Authorization","Bearer "+token).header("X-Center-Id",center.getId()).contentType(MediaType.APPLICATION_JSON)
-   .content("{\\"courseId\\":1,\\"teacherId\\":1,\\"groupCode\\":\\"G-DENIED\\",\\"name\\":\\"Forbidden group\\"}"))
+   .content("{\"courseId\":1,\"teacherId\":1,\"groupCode\":\"G-DENIED\",\"name\":\"Forbidden group\"}"))
    .andExpect(status().isForbidden());
  }
  private JsonNode post(String token,Long centerId,String path,String body) throws Exception {String response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(path).header("Authorization","Bearer "+token).header("X-Center-Id",centerId).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();return mapper.readTree(response);}
