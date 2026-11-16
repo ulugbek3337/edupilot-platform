@@ -31,6 +31,11 @@ public final class AuthDtos {
     public record RefreshRequest(@NotBlank(message = "{validation.required}") String refreshToken) {
     }
 
+    public record ChangePasswordRequest(
+            @NotBlank String currentPassword,
+            @NotBlank @Size(min = 8, max = 72) String newPassword) {
+    }
+
     public record LanguageUpdateRequest(
             @NotBlank(message = "{validation.required}")
             @Pattern(regexp = "uz|ru", message = "{validation.language.unsupported}")
@@ -44,7 +49,8 @@ public final class AuthDtos {
             String email,
             String firstName,
             String lastName,
-            String preferredLanguage) {
+            String preferredLanguage,
+            boolean mustChangePassword) {
     }
 
     public record UserSummary(Long id, String email, String firstName, String lastName, String preferredLanguage) {
