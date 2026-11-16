@@ -36,6 +36,9 @@ public class CenterController {
     public ResponseEntity<CenterSummary> createCenter(@RequestParam String name,
                                                      @AuthenticationPrincipal AuthenticatedUser principal) {
         User user = authService.getCurrentUser(principal.getUsername());
+        if (user.isStudentAccount()) {
+            throw new com.eduflow.exception.EduFlowException(org.springframework.http.HttpStatus.FORBIDDEN, "student.account.profile.read-only");
+        }
         Center center = centerService.createCenter(name, user);
         return ResponseEntity.ok(new CenterSummary(center.getId(), center.getName(), center.getSlug(), center.getStatus().name()));
     }
