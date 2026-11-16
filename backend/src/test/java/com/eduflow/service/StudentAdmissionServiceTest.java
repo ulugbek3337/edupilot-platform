@@ -52,6 +52,11 @@ class StudentAdmissionServiceTest {
             return student;
         });
         when(users.existsByEmail("student-1-55@students.edupilot.local")).thenReturn(false);
+        when(users.save(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            user.setId(9L);
+            return user;
+        });
         when(passwordEncoder.encode(anyString())).thenReturn("$2a$test-hash");
 
         StudentAdmissionRequest request = new StudentAdmissionRequest(
