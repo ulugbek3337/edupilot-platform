@@ -3,6 +3,7 @@ import com.eduflow.entity.Teacher; import org.springframework.data.jpa.repositor
 public interface TeacherRepository extends JpaRepository<Teacher,Long>{
  List<Teacher> findAllByCenter_IdAndStatusOrderByLastNameAscFirstNameAsc(Long centerId,String status);
  Optional<Teacher> findByIdAndCenter_Id(Long id,Long centerId);
+ Optional<Teacher> findByUser_IdAndCenter_Id(Long userId,Long centerId);
  boolean existsByCenter_IdAndTeacherCode(Long centerId,String code);
  boolean existsByCenter_IdAndTeacherCodeAndIdNot(Long centerId,String code,Long id);
 }
