@@ -25,15 +25,21 @@ class PostgresTenantRlsIntegrationTest {
  @BeforeAll static void migrateAndSeed() {
   DataSource adminDs=dataSource("postgres","postgres");
   admin=new JdbcTemplate(adminDs);
-  Flyway.configure().dataSource(postgres.getJdbcUrl(),"postgres","postgres")
-   .locations("classpath:db/migration").load().migrate();
-  admin.execute("CREATE ROLE edupilot_app LOGIN PASSWORD 'app-password'");
+  admin.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC");
+  admin.execute("CREATE ROLE edupilot_migrator LOGIN PASSWORD 'migration-password' NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS");
+  admin.execute("CREATE ROLE edupilot_app LOGIN PASSWORD 'app-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS");
+  admin.execute("GRANT CONNECT ON DATABASE edupilot_rls TO edupilot_migrator, edupilot_app");
+  admin.execute("GRANT USAGE, CREATE ON SCHEMA public TO edupilot_migrator");
   admin.execute("GRANT USAGE ON SCHEMA public TO edupilot_app");
+  admin.execute("ALTER DEFAULT PRIVILEGES FOR ROLE edupilot_migrator IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO edupilot_app");
+  admin.execute("ALTER DEFAULT PRIVILEGES FOR ROLE edupilot_migrator IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO edupilot_app");
+  Flyway.configure().dataSource(postgres.getJdbcUrl(),"edupilot_migrator","migration-password")
+   .locations("classpath:db/migration").load().migrate();
   admin.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO edupilot_app");
   admin.execute("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO edupilot_app");
   admin.update("INSERT INTO centers(id,name,slug,status) VALUES (101,'Center One','center-one','ACTIVE'),(202,'Center Two','center-two','ACTIVE')");
   admin.update("INSERT INTO students(center_id,student_number,first_name,last_name) VALUES (101,'S-101','One','Student'),(202,'S-202','Two','Student')");
-  admin.update("INSERT INTO users(id,email,password_hash,first_name,last_name) VALUES (601,'parent-one@example.test','not-a-real-hash','Parent','One'),(602,'parent-two@example.test','not-a-real-hash','Parent','Two'),(603,'student-one@example.test','not-a-real-hash','Student','One'),(604,'student-two@example.test','not-a-real-hash','Student','Two'),(605,'teacher-one@example.test','not-a-real-hash','Teacher','One'),(606,'teacher-two@example.test','not-a-real-hash','Teacher','Two'),(607,'wrong-role@example.test','not-a-real-hash','Wrong','Role')");
+  admin.update("INSERT INTO users(id,email,password_hash,first_name,last_name) VALUES (601,'parent-one@example.test','not-a-real-hash','Parent','One'),(602,'parent-two@example.test','not-a-real-hash','Parent','Two'),(603,'student-one@example.test','not-a-real-hash','Student','One'),(604,'student-two@example.test','not-a-real-hash','Student','Two'),(605,'teacher-one@example.test','not-a-real-hash','Teacher','One'),(606,'teacher-two@example.test','not-a-real-hash','Teacher','Two'),(607,'wrong-role@example.test','not-a-real-hash','Wrong','Role'),(608,'new-member@example.test','not-a-real-hash','New','Member')");
   admin.update("INSERT INTO center_memberships(center_id,user_id,role) VALUES (101,601,'PARENT'),(202,602,'PARENT'),(101,603,'STUDENT'),(202,604,'STUDENT'),(101,605,'TEACHER'),(202,606,'TEACHER'),(101,607,'PARENT')");
   admin.update("UPDATE students SET user_id=603 WHERE center_id=101 AND student_number='S-101'");
   admin.update("UPDATE students SET user_id=604 WHERE center_id=202 AND student_number='S-202'");
@@ -45,6 +51,7 @@ class PostgresTenantRlsIntegrationTest {
   admin.update("INSERT INTO study_groups(id,center_id,course_id,teacher_id,group_code,name) VALUES (501,101,401,301,'G-101','One Group'),(502,202,402,302,'G-202','Two Group')");
   admin.update("INSERT INTO lessons(id,center_id,group_id,title,starts_at,ends_at) VALUES (701,101,501,'One Lesson','2026-01-01 10:00:00','2026-01-01 11:00:00'),(702,202,502,'Two Lesson','2026-01-01 10:00:00','2026-01-01 11:00:00')");
   admin.update("INSERT INTO group_enrollments(center_id,group_id,student_id) VALUES (101,501,1),(202,502,2)");
+  admin.update("INSERT INTO refresh_tokens(token,user_id,revoked,expires_at) VALUES ('" + "a".repeat(64) + "',601,FALSE,CURRENT_TIMESTAMP + INTERVAL '1 day'),('" + "b".repeat(64) + "',602,FALSE,CURRENT_TIMESTAMP + INTERVAL '1 day')");
   DataSource appDs=dataSource("edupilot_app","app-password");
   app=new JdbcTemplate(appDs);
   appTransaction=new TransactionTemplate(new DataSourceTransactionManager(appDs));
@@ -248,6 +255,81 @@ class PostgresTenantRlsIntegrationTest {
   }));
  }
 
+ @Test void membershipRowsAreHiddenWithoutUserOrCenterContext() {
+  Integer visible=app.queryForObject("SELECT COUNT(*) FROM center_memberships",Integer.class);
+  assertEquals(0,visible);
+ }
+
+ @Test void authenticatedUserCanReadOnlyTheirOwnMembershipsBeforeCenterSelection() {
+  Integer own=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.queryForObject("SELECT COUNT(*) FROM center_memberships",Integer.class);
+  });
+  Integer foreign=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.queryForObject("SELECT COUNT(*) FROM center_memberships WHERE user_id=602",Integer.class);
+  });
+  assertEquals(1,own);
+  assertEquals(0,foreign);
+ }
+
+ @Test void selectedCenterCanReadOnlyMembershipsInThatCenter() {
+  Integer ownCenter=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.queryForObject("SELECT COUNT(*) FROM center_memberships",Integer.class);
+  });
+  Integer otherCenter=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   return app.queryForObject("SELECT COUNT(*) FROM center_memberships WHERE center_id=202",Integer.class);
+  });
+  assertEquals(4,ownCenter);
+  assertEquals(0,otherCenter);
+ }
+
+ @Test void membershipWritesRequireSelectedCenterContext() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   app.update("INSERT INTO center_memberships(center_id,user_id,role) VALUES (101,608,'STUDENT')");
+   return null;
+  }));
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("INSERT INTO center_memberships(center_id,user_id,role) VALUES (202,608,'STUDENT')");
+   return null;
+  }));
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_center_id', ?, true)",String.class,"101");
+   app.update("UPDATE center_memberships SET center_id=202 WHERE center_id=101 AND user_id=601");
+   return null;
+  }));
+ }
+
+ @Test void refreshTokensAreHiddenWithoutAuthenticatedUserContext() {
+  Integer visible=app.queryForObject("SELECT COUNT(*) FROM refresh_tokens",Integer.class);
+  assertEquals(0,visible);
+ }
+
+ @Test void refreshTokenRowsAreScopedToAuthenticatedUser() {
+  Integer own=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.queryForObject("SELECT COUNT(*) FROM refresh_tokens",Integer.class);
+  });
+  Integer foreign=appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   return app.queryForObject("SELECT COUNT(*) FROM refresh_tokens WHERE user_id=602",Integer.class);
+  });
+  assertEquals(1,own);
+  assertEquals(0,foreign);
+ }
+
+ @Test void refreshTokensCannotBeCreatedForAnotherUser() {
+  assertThrows(org.springframework.dao.DataAccessException.class,()->appTransaction.execute(status->{
+   app.queryForObject("SELECT set_config('app.current_user_id', ?, true)",String.class,"601");
+   app.update("INSERT INTO refresh_tokens(token,user_id,revoked,expires_at) VALUES ('" + "c".repeat(64) + "',602,FALSE,CURRENT_TIMESTAMP + INTERVAL '1 day')");
+   return null;
+  }));
+ }
+
  @Test void applicationDatabaseRoleCannotBypassRowLevelSecurity() {
   Boolean bypass=admin.queryForObject("SELECT rolbypassrls OR rolsuper FROM pg_roles WHERE rolname='edupilot_app'",Boolean.class);
   assertEquals(Boolean.FALSE,bypass,"Application DB role must not be superuser or BYPASSRLS.");
@@ -268,6 +350,15 @@ class PostgresTenantRlsIntegrationTest {
   Boolean canCreate=admin.queryForObject(
    "SELECT has_schema_privilege('edupilot_app','public','CREATE')",Boolean.class);
   assertEquals(Boolean.FALSE,canCreate,"Runtime role must not be able to create or replace schema objects.");
+  Boolean runtimeBypass=admin.queryForObject(
+   "SELECT rolbypassrls FROM pg_roles WHERE rolname='edupilot_app'",Boolean.class);
+  assertEquals(Boolean.FALSE,runtimeBypass);
+ }
+
+ @Test void migrationRoleCanBypassRlsButIsNotSuperuser() {
+  Boolean safeMigrationRole=admin.queryForObject(
+   "SELECT rolbypassrls AND NOT rolsuper FROM pg_roles WHERE rolname='edupilot_migrator'",Boolean.class);
+  assertEquals(Boolean.TRUE,safeMigrationRole);
  }
  @Test void updateCannotReadOrModifyAnotherTenantsRows() {
   Integer changed=appTransaction.execute(status->{
