@@ -26,6 +26,9 @@ class CenterMembershipServiceTest {
     @Mock
     private CenterMembershipRepository membershipRepository;
 
+    @Mock
+    private TenantRlsContext tenantRlsContext;
+
     @InjectMocks
     private CenterMembershipService membershipService;
 
