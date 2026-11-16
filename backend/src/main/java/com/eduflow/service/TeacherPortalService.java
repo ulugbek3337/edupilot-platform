@@ -58,6 +58,7 @@ public class TeacherPortalService {
         byte[] bytes = new byte[18];
         random.nextBytes(bytes);
         String temporaryPassword = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        tenantRlsContext.applyUserEmail(normalizedEmail);
         User user = new User(normalizedEmail, passwordEncoder.encode(temporaryPassword), teacher.getFirstName(), teacher.getLastName());
         user.setMustChangePassword(true);
         user = users.save(user);
